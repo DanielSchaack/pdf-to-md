@@ -1,8 +1,10 @@
 import logging
-from llms.llm_factory import LLMProviderFactory
-from llms.llm_interfaces import LLMProvider
+import logging.config
+from llms.llm_providers import LLMProviderFactory, LLMProvider
+from utils.strings import get_markdown_headers_and_tables
+from utils.ocr import get_text_column_data, get_full_text_of_blocks
 
-logging.basicConfig(filename="app.log", filemode="w", level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.config.fileConfig("src/logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """
@@ -35,7 +37,7 @@ You are an AI assistant specialized in OCR for German legal and contractual docu
         | Exakter Text 1.1 | €123,45 |
         ```
     *   **Inline Formatting:**
-        *   Bold: `*text**`
+        *   Bold: `**text**`
         *   Italic: `_text_`
         *   Underline: `<u>text</u>`
         *   Strikethrough: `~~text~~`
@@ -43,13 +45,12 @@ You are an AI assistant specialized in OCR for German legal and contractual docu
     *   **ONLY the verbatim transcribed German text, formatted in Markdown.**
     *   No conversational preamble, summaries, or explanations (unless it's an `[unleserlich]` note).
 
-Proceed with OCR and Markdown formatting, understanding that **precision and exactness of German contractual wording are non-negotiable.
-This includes applying the correct inline formatting like bold already provided by the image!**
+Proceed with OCR and Markdown formatting, understanding that **precision and exactness of German contractual wording and formatting are non-negotiable.
 """
 
 
 def test_llm_provider():
-    API_KEY = "<API_KEY>"
+    API_KEY = "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"
     OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
     user_message = "No previous page."
     provider = "openrouter"
@@ -59,19 +60,28 @@ def test_llm_provider():
     try:
         logger.info(f"Creating text provider with model: {text_model}")
         text_provider: LLMProvider = LLMProviderFactory.create_provider(
-                provider_name=provider,
-                model=text_model,
-                api_url=OPENROUTER_API_URL,
-                api_key=API_KEY,
-                system_prompt=SYSTEM_PROMPT
-                )
+            provider_name=provider,
+            api_url=OPENROUTER_API_URL,
+            api_key=API_KEY,
+        )
+
         logger.info(f"User: {user_message}")
-        response_message = text_provider.get_completion(user_message, image_path)
+        response_message = text_provider.get_completion(model=text_model, user_message=user_message, system_prompt=SYSTEM_PROMPT, image_path=image_path)
         logger.info(f"LLM ({text_model}): {response_message}")
 
+        return response_message
+
     except Exception as e:
-        logger.error(e)
+        logger.error(e, exc_info=True)
+        raise
 
 
 if __name__ == '__main__':
-    test_llm_provider()
+    blocks = get_text_column_data("examples/png/page_1.png", language="deu")
+    block_text = get_full_text_of_blocks(blocks)
+    logger.info(f"Tesseract provided the following text: \n{block_text}")
+    response_message = test_llm_provider()
+    headers, tables, is_table = get_markdown_headers_and_tables(response_message)
+    logger.info(headers)
+    logger.info(tables)
+

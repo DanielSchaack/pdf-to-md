@@ -13,29 +13,27 @@ class LLMProvider(ABC):
     Defines the contract for sending requests and extracting responses.
     """
 
-    def __init__(self, model: str, api_url: str, api_key: str, system_prompt: Optional[str] = None):
+    def __init__(self, api_url: str, api_key: str):
         """
         Initializes the LLM provider.
 
         Args:
-            model: The name of the LLM model to use.
             api_url: The API endpoint URL for the provider.
             api_key: The API key for authentication.
-            system_prompt: An optional system message to guide the LLM's behavior.
         """
-        self.model = model
         self.api_url = api_url
         self.api_key = api_key
-        self.system_prompt = system_prompt
 
     @abstractmethod
-    def _prepare_request_payload(self, user_message: str, image_path: Optional[str] = None) -> Dict[str, Any]:
+    def _prepare_request_payload(self, model: str, user_message: str, system_prompt: Optional[str], image_path: Optional[str] = None) -> Dict[str, Any]:
         """
         Prepares the provider-specific request payload.
         This method must be implemented by concrete provider classes.
 
         Args:
+            model: The name of the LLM model to use.
             user_message: The user's message or prompt.
+            system_prompt: An optional system message to guide the LLM's behavior.
             image_path: Optional path to an image file for vision models.
 
         Returns:
@@ -57,12 +55,14 @@ class LLMProvider(ABC):
         """
         pass
 
-    def send_request(self, user_message: str, image_path: Optional[str] = None) -> Dict[str, Any]:
+    def send_request(self, model: str, user_message: str, system_prompt: Optional[str] = None, image_path: Optional[str] = None) -> Dict[str, Any]:
         """
         Sends a request to the LLM provider.
 
         Args:
+            model: The name of the LLM model to use.
             user_message: The user's message or prompt.
+            system_prompt: An optional system message to guide the LLM's behavior.
             image_path: Optional path to an image file for vision models.
 
         Returns:
@@ -72,7 +72,7 @@ class LLMProvider(ABC):
             requests.exceptions.RequestException: If the HTTP request fails.
             ValueError: If the response is not valid JSON.
         """
-        payload = self._prepare_request_payload(user_message, image_path)
+        payload = self._prepare_request_payload(model=model, user_message=user_message, system_prompt=system_prompt, image_path=image_path)
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
@@ -95,7 +95,7 @@ class LLMProvider(ABC):
             logger.error(f"An unexpected error occurred during send_request: {e}", exc_info=True)
             raise ValueError(f"An unexpected error occurred: {e}")
 
-    def get_completion(self, user_message: str, image_path: Optional[str] = None) -> str:
+    def get_completion(self, model: str, user_message: str, system_prompt: Optional[str] = None, image_path: Optional[str] = None) -> str:
         """
         A convenience method that sends a request and extracts the response message.
 
@@ -106,5 +106,5 @@ class LLMProvider(ABC):
         Returns:
             The extracted text message from the LLM's response.
         """
-        response_json = self.send_request(user_message, image_path)
+        response_json = self.send_request(model=model, user_message=user_message, system_prompt=system_prompt, image_path=image_path)
         return self.extract_response_message(response_json)
