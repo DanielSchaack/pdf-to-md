@@ -50,7 +50,7 @@ Proceed with OCR and Markdown formatting, understanding that **precision and exa
 
 
 def test_llm_provider():
-    API_KEY = "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"
+    API_KEY = "<API_KEY>"
     OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
     user_message = "No previous page."
     provider = "openrouter"
