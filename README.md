@@ -1,5 +1,11 @@
 # pdf-to-md
-Using multimodal LLMs to transform pdfs into markdown
-`pip install PyMuPDF`
-`pip install pytesseract`
-`pip install opencv-python`
+**From PDF chaos to RAG clarity. Built to handle PDFs that clearly skipped formatting school**
+
+Using Tesseract and multimodal LLMs to transform pdfs into markdown
+- Required packages:
+    - PyMuPDF
+    - pytesseract
+    - opencv-python
+    - requests
+- Dependencies:
+    - Tesseract
