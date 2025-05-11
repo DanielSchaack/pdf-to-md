@@ -1,8 +1,10 @@
 import logging
 import logging.config
+import argparse
+import os
 from llms.llm_providers import LLMProviderFactory, LLMProvider
 from utils.strings import get_markdown_headers_and_tables
-from utils.ocr import get_text_column_data, get_full_text_of_blocks
+from utils.files import get_text_column_data, get_full_text_of_blocks, convert_pdf_to_images
 
 logging.config.fileConfig("src/logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
@@ -49,20 +51,18 @@ Proceed with OCR and Markdown formatting, understanding that **precision and exa
 """
 
 
-def test_llm_provider():
-    API_KEY = "<API_KEY>"
+def test_llm_provider(image_path: str, api_key: str):
     OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
     user_message = "No previous page."
     provider = "openrouter"
     text_model = "mistralai/mistral-small-3.1-24b-instruct:free"
-    image_path = "./examples/png/page_1.png"
 
     try:
         logger.info(f"Creating text provider with model: {text_model}")
         text_provider: LLMProvider = LLMProviderFactory.create_provider(
             provider_name=provider,
             api_url=OPENROUTER_API_URL,
-            api_key=API_KEY,
+            api_key=api_key,
         )
 
         logger.info(f"User: {user_message}")
@@ -76,12 +76,80 @@ def test_llm_provider():
         raise
 
 
+def test_logic(pdf_path: str, output_dir: str, api_key: str):
+    image_paths = convert_pdf_to_images(
+            pdf_path=pdf_path,
+            output_dir=output_dir,
+            image_format="png",
+            dpi=300,
+            colorspace="rgb",
+            page_numbers=[1],
+            use_alpha=False
+            )
+    logger.info(image_paths)
+    for path in image_paths:
+        blocks = get_text_column_data(path, language="deu")
+        block_text = get_full_text_of_blocks(blocks)
+        logger.info(f"Tesseract provided the following text: \n{block_text}")
+        response_message = test_llm_provider(path, api_key)
+        headers, tables, is_table = get_markdown_headers_and_tables(response_message)
+        logger.info(headers)
+        logger.info(tables)
+
+
 if __name__ == '__main__':
-    blocks = get_text_column_data("examples/png/page_1.png", language="deu")
-    block_text = get_full_text_of_blocks(blocks)
-    logger.info(f"Tesseract provided the following text: \n{block_text}")
-    response_message = test_llm_provider()
-    headers, tables, is_table = get_markdown_headers_and_tables(response_message)
-    logger.info(headers)
-    logger.info(tables)
+    parser = argparse.ArgumentParser(
+        description="PDF processing with an LLM provider."
+    )
+
+    # Argument for the PDF file path
+    # Use a flag (e.g., --pdf-path) and set a default value
+    parser.add_argument(
+        "--pdf-path", "-p",
+        type=str,
+        default="examples/Beihilfeergänzungstarife ET10-ET50.pdf",
+        help="Path to the PDF document to be processed. "
+    )
+
+    parser.add_argument(
+        "--api-key", "-k",
+        type=str,
+        help="API key for the Large Language Model (LLM) provider. "
+             "This is a required argument. Alternatively, you can set the "
+             "'API_KEY' environment variable."
+    )
+
+    parser.add_argument(
+        "--output-dir", "-o",
+        type=str,
+        default="./output",
+        help="Directory where output files will be saved. Defaults to './output'."
+    )
+
+    args = parser.parse_args()
+
+    path = args.pdf_path
+
+    # Get API key from argument or environment variable
+    api_key = args.api_key
+    if not api_key:
+        api_key = os.getenv("API_KEY")
+        if not api_key:
+            parser.error(
+                "Error: LLM API key is required. Please provide it using "
+                "--api-key or by setting the API_KEY environment variable."
+            )
+
+    # Ensure the output directory exists, create it if necessary
+    output_directory = args.output_dir
+    if not os.path.exists(output_directory):
+        try:
+            os.makedirs(output_directory)
+            print(f"Info: Created output directory: {output_directory}")
+        except OSError as e:
+            parser.error(f"Error creating output directory '{output_directory}': {e}")
+    elif not os.path.isdir(output_directory):
+        parser.error(f"Error: '{output_directory}' exists but is not a directory.")
+
+    test_logic(pdf_path=path, output_dir=output_directory, api_key=args.api_key)
 
