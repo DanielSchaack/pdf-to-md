@@ -3,8 +3,8 @@ import logging.config
 import argparse
 import os
 from llms.llm_providers import LLMProviderFactory, LLMProvider
-from utils.strings import get_markdown_headers_and_tables
-from utils.files import get_text_column_data, get_full_text_of_blocks, convert_pdf_to_images
+from utils.strings import get_markdown_headers_and_tables, convert_markdown_to_chunks
+from utils.files import get_text_column_data, get_full_text_of_blocks, convert_pdf_to_images, convert_chunks_to_files, get_filename_from_path
 
 logging.config.fileConfig("src/logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ You are an AI assistant specialized in OCR for German legal and contractual docu
         ```
     *   **Inline Formatting:**
         *   Bold: `**text**`
-        *   Italic: `_text_`
+        *   Italic: `*text*`
         *   Underline: `<u>text</u>`
         *   Strikethrough: `~~text~~`
 3.  **Output Requirements:**
@@ -77,24 +77,26 @@ def test_llm_provider(image_path: str, api_key: str):
 
 
 def test_logic(pdf_path: str, output_dir: str, api_key: str):
+    filename = get_filename_from_path(pdf_path)
+
     image_paths = convert_pdf_to_images(
-            pdf_path=pdf_path,
-            output_dir=output_dir,
-            image_format="png",
-            dpi=300,
-            colorspace="rgb",
-            page_numbers=[1],
-            use_alpha=False
-            )
-    logger.info(image_paths)
-    for path in image_paths:
+        pdf_path=pdf_path,
+        output_dir=output_dir,
+        filename=filename,
+        image_format="png",
+        dpi=300,
+        colorspace="rgb",
+        page_numbers=[1],
+        use_alpha=False
+    )
+
+    for index, path in enumerate(image_paths):
         blocks = get_text_column_data(path, language="deu")
         block_text = get_full_text_of_blocks(blocks)
-        logger.info(f"Tesseract provided the following text: \n{block_text}")
         response_message = test_llm_provider(path, api_key)
         headers, tables, is_table = get_markdown_headers_and_tables(response_message)
-        logger.info(headers)
-        logger.info(tables)
+        chunks = convert_markdown_to_chunks(filename=filename, markdown_text=response_message, header_level_cutoff=3)
+        convert_chunks_to_files(filename_prefix=filename, chunk_suffix="md", output_dir=output_dir, chunks=chunks)
 
 
 if __name__ == '__main__':
@@ -107,7 +109,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "--pdf-path", "-p",
         type=str,
-        default="examples/Beihilfeergänzungstarife ET10-ET50.pdf",
+        required=True,
         help="Path to the PDF document to be processed. "
     )
 

@@ -1,5 +1,8 @@
 import io
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Any
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def count_consecutive_chars(s: str, start_pos: int, char: str) -> tuple[int, int]:
@@ -33,6 +36,7 @@ def count_consecutive_chars(s: str, start_pos: int, char: str) -> tuple[int, int
         else:
             break
 
+    logger.debug(f"Character {char}, starting at {start_pos}, appears {count} times, ending at {i-1}")
     return count, i - 1
 
 
@@ -56,21 +60,98 @@ def get_markdown_headers_and_tables(s: str) -> Tuple[List[str], List[List[str]],
         >>> get_markdown_headers_and_tables("# Header 1\n| Row 1 |\n| Row 2 |\n## Header 2\n| Row 3 |\n| Row 4 |")
         (['# Header 1', '## Header 2'], [['| Row 1 |', '| Row 2 |'], ['| Row 3 |', '| Row 4 |']], False)
     """
-    if not s.strip():
+    if s and not s.strip():
         raise ValueError("Input string cannot be empty")
-    tables = []
-    lines_with_pipe = []
-    lines_with_pound = []
-    is_currently_table = False
+
+    headers: List[str] = []
+    tables: List[List[str]] = []
+    lines_with_pipe: List[str] = []
+    is_currently_table: bool = False
+
     lines = io.StringIO(s)
     for line in lines:
+        # Headers
         if line.startswith("#"):
-            lines_with_pound.append(line.strip())
+            headers.append(line.strip())
+            logger.debug(f"Adding new header: {line.strip()}")
+
+        # Currently a table
         if line.startswith("|"):
             is_currently_table = True
             lines_with_pipe.append(line.strip())
+            logger.debug(f"Adding new line to table: {line.strip()}")
+
+        # End of tables
         if len(lines_with_pipe) > 0 and not line.startswith("|"):
             is_currently_table = False
             tables.append(lines_with_pipe)
+            logger.debug(f"Adding new table: {lines_with_pipe}")
+            lines_with_pipe = []
 
-    return lines_with_pound, lines_with_pipe, is_currently_table
+    # If last line is still a table, it wasn't added in the loop
+    if len(lines_with_pipe) > 0:
+        tables.append(lines_with_pipe)
+
+    logger.debug(f"Returning headers: {headers}")
+    logger.debug(f"Returning tables: {tables}")
+    logger.debug(f"Returning is_currently_table: {is_currently_table}")
+    return headers, tables, is_currently_table
+
+
+def convert_markdown_to_chunks(filename: str, markdown_text: str, header_level_cutoff: int = 3) -> List[List[str]]:
+    """
+    Convert Markdown text into chunks based on headers and a specified cutoff level.
+
+    Args:
+        file_name (str): The name of the file containing the Markdown content.
+        markdown_text (str): The Markdown text to be converted.
+        header_level_cutoff (int, optional): The maximum header level to consider for chunking.
+                                             Cuts chunk with each header level equal or less than to the cutoff. Defaults to 4.
+
+    Returns:
+        List[List[str]]: A list of chunks, where each chunk is a list of strings representing lines in that chunk.
+
+    Raises:
+        ValueError: If the header_level_cutoff is less than or equal to 0.
+    """
+    header_map: Dict[int, Any] = {}
+    current_chunk: List[str] = []
+    current_chunk.append(filename)
+    chunks: List[List[str]] = []
+
+    lines = io.StringIO(markdown_text)
+    for line in lines:
+
+        if line.startswith("#"):
+            header_level, end_position = count_consecutive_chars(line, 0, "#")
+            header_map[header_level] = line.strip()
+
+            if header_level > header_level_cutoff:
+                current_chunk.append(line.strip())
+                logger.debug(f"Added header line '{line.strip()}' to current_chunk")
+                continue  # continue with current chunk
+
+            # Start of next chunk
+            if len(current_chunk) > len(header_map) + 1:    # More lines than just the context
+                chunks.append(current_chunk)
+                logger.debug(f"Added current chunk '{current_chunk}' to all chunks")
+
+                # Reset current chunk - add filename and headers as context
+                current_chunk = []
+                current_chunk.append(filename)
+                for header in header_map.values():
+                    current_chunk.append(header)
+
+                logger.debug(f"Cleared and added context to current chunk, now: '{current_chunk}'")
+            continue  # Don't add regular line
+
+        # Regular text, add to chunk
+        current_chunk.append(line.strip())
+        logger.debug(f"Added regular line '{line.strip()}' to current_chunk")
+
+    if len(current_chunk) > len(header_map) + 1:    # More lines than just the context
+        chunks.append(current_chunk)
+        logger.debug(f"Added leftover chunk '{current_chunk}' to all chunks")
+
+    logger.debug(f"Returning chunks '{chunks}'")
+    return chunks

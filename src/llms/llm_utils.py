@@ -1,5 +1,7 @@
 import base64
 import logging
+import os
+from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -23,4 +25,5 @@ def encode_image_to_base64(image_path: str) -> str:
     except FileNotFoundError:
         logger.error(f"Image file not found at {image_path}", exc_info=True)
         raise
+
 

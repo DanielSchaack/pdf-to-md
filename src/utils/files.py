@@ -132,57 +132,61 @@ def get_text_column_data(image_path: str, language: str = 'eng', tesseract_confi
         logger.error("Tesseract is not installed or not in your PATH.", exc_info=True)
         return empty_result
     except Exception as e:
-        logger.error(f"An error occurred during image processing of Tesseract OCR: {e}", e, exc_info=True)
+        logger.error(f"An error occurred during image processing of Tesseract OCR: {e}", exc_info=True)
         return empty_result
 
 
-def get_full_text_of_blocks(column_data) -> str:
+def get_full_text_of_blocks(column_data: Dict[str, Tuple[int, int, int, int, List[str], str, int]]) -> str:
     current_blocks = column_data["columns"]
     combined_full_text = "\n".join(block["full_text"] for block in current_blocks)
+    logger.debug(f"Tesseract provided the following text: \n{combined_full_text}")
     return combined_full_text
+
+
+def get_filename_from_path(file_path: str) -> str:
+    """
+      Extracts the filename from a given file path, without the extension.
+
+      Args:
+          file_path: The full path to the file (e.g., "/path/to/your/file.txt").
+
+      Returns:
+          The filename part of the path, excluding the extension (e.g., "file").
+  """
+    base_name = os.path.basename(file_path)
+    file_name_without_extension, _ = os.path.splitext(base_name)
+    logger.debug(f"Base filename is {file_name_without_extension}")
+    return file_name_without_extension
 
 
 def convert_pdf_to_images(
         pdf_path: str,
-        output_dir: str = "output",
+        output_dir: str,
+        filename: str,
         image_format: str = "png",
         dpi: int = 300,
         colorspace: str = "rgb",  # "rgb", "gray", "cmyk"
         use_alpha: bool = False,
         page_numbers: Optional[List[int]] = None,  # None for all, or list of 1-based page numbers [1, 3, 5]
-        filename_prefix: str = "page_") -> List[str]:
+) -> List[str]:
     """
     Converts PDF pages to images using PyMuPDF (Fitz) with configurable quality settings.
 
     Args:
         pdf_path (str): Path to the PDF file.
         output_folder (str): Directory to save the output images.
+        filename_prefix (str): Prefix for the output image filenames.
         image_format (str): Desired image format (e.g., "png", "jpeg", "tiff", "ppm").
         dpi (int): Dots Per Inch for rendering. Higher DPI means better quality.
         colorspace_str (str): Colorspace to use ("rgb", "gray", "cmyk").
         use_alpha (bool): Whether to include an alpha channel (transparency).
         page_numbers (list, optional): List of 1-based page numbers to convert.
                                        If None, all pages are converted.
-        filename_prefix (str): Prefix for the output image filenames.
 
     Returns:
         list: A list of paths to the saved image files, or an empty list on failure.
     """
-    if not os.path.exists(pdf_path):
-        logger.error(f"Error: PDF file not found at {pdf_path}")
-        return []
-
-    try:
-        doc = fitz.open(pdf_path)
-    except Exception as e:
-        logger.info(f"Error opening PDF '{pdf_path}': {e}")
-        return []
-
-    if not os.path.exists(output_dir):
-        logger.info(f"Creating output folder: {output_dir}")
-        os.makedirs(output_dir)
-
-    # --- Parameter Mapping ---
+    # Input validation
     if colorspace.lower() == "rgb":
         fitz_colorspace = fitz.csRGB
     elif colorspace.lower() == "gray":
@@ -198,66 +202,144 @@ def convert_pdf_to_images(
         image_format = "jpeg"
 
     if image_format not in ["png", "jpeg", "tiff", "ppm", "pnm", "pgm", "pbm"]:
-        logger.info(f"Warning: Image format '{image_format}' might not be directly supported by pix.save(). "
+        logger.warn(f"Image format '{image_format}' might not be directly supported by pix.save(). "
                     f"Ensure the filename extension is appropriate. Using '{image_format}' as extension.")
 
-    saved_image_paths = []
-    total_pages_in_doc = len(doc)
-    pages_to_process = []
-
-    if page_numbers:
-        for p_num_1_based in page_numbers:
-            if 1 <= p_num_1_based <= total_pages_in_doc:
-                pages_to_process.append(p_num_1_based - 1)  # Convert to 0-based index
-            else:
-                logger.warn(f"Page number {p_num_1_based} is out of range (1-{total_pages_in_doc}). Skipping.")
-    else:
-        pages_to_process = range(total_pages_in_doc)
-
-    if not pages_to_process:
-        logger.warn("No valid pages selected for conversion.")
-        doc.close()
+    if not os.path.exists(pdf_path):
+        logger.error(f"Error: PDF file not found at {pdf_path}")
         return []
 
-    logger.debug(f"Converting PDF: {pdf_path}")
-    logger.debug(f"Settings: DPI={dpi}, Format={image_format}, Colorspace={colorspace}, Alpha={use_alpha}")
-    logger.debug(f"Outputting to: {output_dir}")
+    image_dir_path = os.path.join(
+        output_dir,
+        filename,
+        image_format
+    )
+    logger.debug(f"Image dir path is '{image_dir_path}'")
 
-    # Determine padding for filenames based on the max page number being processed
-    max_page_num_for_naming = max(p + 1 for p in pages_to_process) if pages_to_process else 0
-    page_num_padding = len(str(max_page_num_for_naming))
+    if not os.path.exists(image_dir_path):
+        logger.info(f"Creating output folder: {image_dir_path}")
+        os.makedirs(image_dir_path)
 
-    for page_index_0_based in pages_to_process:
-        page_num_1_based = page_index_0_based + 1
+    with fitz.open(pdf_path) as doc:
+        saved_image_paths = []
+        total_pages_in_doc = len(doc)
+        pages_to_process = []
+
+        if page_numbers:
+            for p_num_1_based in page_numbers:
+                if 1 <= p_num_1_based <= total_pages_in_doc:
+                    pages_to_process.append(p_num_1_based - 1)  # Convert to 0-based index
+                else:
+                    logger.warn(f"Page number {p_num_1_based} is out of range (1-{total_pages_in_doc}). Skipping.")
+        else:
+            pages_to_process = range(total_pages_in_doc)
+
+        if not pages_to_process:
+            logger.warn("No valid pages selected for conversion.")
+            return []
+
+        logger.debug(f"Converting PDF: {pdf_path}")
+        logger.debug(f"Settings: DPI={dpi}, Format={image_format}, Colorspace={colorspace}, Alpha={use_alpha}")
+        logger.debug(f"Outputting to: {image_dir_path}")
+
+        # Determine padding for filenames based on the max page number being processed
+        max_page_num_for_naming = max(p + 1 for p in pages_to_process) if pages_to_process else 0
+        logger.debug(f"Provided maximal page number is {max_page_num_for_naming}")
+
+        page_num_padding = len(str(max_page_num_for_naming))
+        logger.debug(f"Based on maximal page number is the padding of zeroes {page_num_padding}")
+
+        for page_index_0_based in pages_to_process:
+            page_num_1_based = page_index_0_based + 1
+            try:
+                page = doc.load_page(page_index_0_based)
+
+                # Render page to an image (pixmap)
+                pix = page.get_pixmap(
+                    dpi=dpi,
+                    colorspace=fitz_colorspace,
+                    alpha=use_alpha
+                )
+
+                # Naming: page_001.png, page_002.png etc.
+                image_filename = os.path.join(
+                    image_dir_path,
+                    f"{filename}_{str(page_num_1_based).zfill(page_num_padding)}.{image_format}"
+                )
+
+                # Save the pixmap as an image file
+                pix.save(image_filename)
+
+                saved_image_paths.append(image_filename)
+                logger.info(f"Saved: {image_filename}")
+
+            except Exception as e:
+                logger.error(f"Error converting page {page_num_1_based}: {e}", exc_info=True)
+                # Continue with other pages if one fails
+
+        if saved_image_paths:
+            logger.info(f"Successfully converted {len(saved_image_paths)} pages.")
+        else:
+            logger.warn("No images were successfully converted.")
+        return saved_image_paths
+
+
+def convert_chunks_to_files(filename_prefix: str, chunk_suffix: str, output_dir: str, chunks: List[List[str]]):
+    """
+    Convert a list of Markdown chunks into individual files with sequential filenames.
+
+    Args:
+        filename_prefix (str): The prefix to use for each chunk file name.
+        suffix (str): The file extension to use for the chunk files.
+        output_dir (str): The directory where the chunk files will be saved.
+        chunks (List[List[str]]): A list of chunks, where each chunk is a list of strings representing lines in that chunk.
+
+    Raises:
+        ValueError: If the output directory does not exist or cannot be created.
+        PermissionError: If there are insufficient permissions to write to the output directory.
+    """
+
+    amount_chunks: int = len(chunks)
+    logger.debug(f"Creating {amount_chunks} chunks")
+    page_num_padding = len(str(amount_chunks))
+    logger.debug(f"Padding chunk number to {page_num_padding}")
+
+    for index, chunk in enumerate(chunks):
+        chunk_path = os.path.join(
+            output_dir,
+            filename_prefix,
+            chunk_suffix
+        )
+        logger.debug(f"Chunk path is '{chunk_path}'")
+
+        chunk_filepath = os.path.join(
+            chunk_path,
+            f"{filename_prefix}_{str(index).zfill(page_num_padding)}.{chunk_suffix}"
+        )
+        logger.debug(f"Chunk filepath is '{chunk_filepath}'")
+
+        # Ensure the output directory exists
+        if not os.path.exists(chunk_path):
+            try:
+                os.makedirs(chunk_path)
+                logger.info(f"Created directory '{chunk_path}'")
+            except Exception as e:
+                logger.error(f"Failed to create output directory at {chunk_path}: {e}", exc_info=True)
+                raise
+
+        chunk_text = "\n".join(chunk)
+        logger.debug(f"Chunk text is '{chunk_text}'")
+
         try:
-            page = doc.load_page(page_index_0_based)
+            with open(chunk_filepath, "w") as chunk_file:
+                chunk_file.write(chunk_text)
+                logger.info(f"Successfully written to file '{chunk_filepath}'")
 
-            # Render page to an image (pixmap)
-            pix = page.get_pixmap(
-                dpi=dpi,
-                colorspace=fitz_colorspace,
-                alpha=use_alpha
-            )
-
-            # Naming: page_001.png, page_002.png etc.
-            image_filename = os.path.join(
-                output_dir,
-                f"{filename_prefix}{str(page_num_1_based).zfill(page_num_padding)}.{image_format}"
-            )
-
-            # Save the pixmap as an image file
-            pix.save(image_filename)
-
-            saved_image_paths.append(image_filename)
-            logger.info(f"Saved: {image_filename}")
+        except PermissionError as e:
+            logger.error(f"Permission denied when trying to write file at {chunk_filepath}: {e}", exc_info=True)
+            raise
 
         except Exception as e:
-            logger.error(f"Error converting page {page_num_1_based}: {e}", exc_info=True)
-            # Continue with other pages if one fails
+            logger.error(f"An error occurred while writing file at {chunk_filepath}: {e}", exc_info=True)
+            raise
 
-    doc.close()
-    if saved_image_paths:
-        logger.info(f"Successfully converted {len(saved_image_paths)} pages.")
-    else:
-        logger.warn("No images were successfully converted.")
-    return saved_image_paths
