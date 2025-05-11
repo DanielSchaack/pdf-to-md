@@ -1,6 +1,6 @@
 from typing import List, Dict, Optional, Any
 from .llm_interfaces import LLMProvider
-from .llm_utils import encode_image_to_base64
+from core.file_service import encode_image_to_base64
 import logging
 
 logger = logging.getLogger(__name__)
@@ -13,9 +13,8 @@ class LLMProviderFactory:
 
     @staticmethod
     def create_provider(provider_name: str,
-                        api_url: str,
-                        api_key: str,
-                        ) -> LLMProvider:
+                        api_url: Optional[str] = None,
+                        api_key: Optional[str] = None) -> LLMProvider:
         """
         Creates and returns an instance of the specified LLM provider.
 
@@ -32,6 +31,8 @@ class LLMProviderFactory:
         """
         if provider_name.lower() == "openrouter":
             logger.debug("Returning openrouter")
+            if not api_url:
+                api_url = "https://openrouter.ai/api/v1/chat/completions"
             return OpenRouterProvider(api_url=api_url, api_key=api_key)
         # elif provider_name.lower() == "ollama":
         #     logger.debug("Returning ollama", exc_info=True)
@@ -45,7 +46,11 @@ class OpenRouterProvider(LLMProvider):
     Concrete implementation for the OpenRouter.ai LLM provider.
     """
 
-    def _prepare_request_payload(self, model: str, user_message: str, system_prompt: Optional[str] = None, image_path: Optional[str] = None) -> Dict[str, Any]:
+    def _prepare_request_payload(self,
+                                 model: str,
+                                 user_message: str,
+                                 system_prompt: Optional[str] = None,
+                                 image_path: Optional[str] = None) -> Dict[str, Any]:
         """
         Prepares the request payload specific to OpenRouter.ai.
         """
@@ -96,11 +101,6 @@ class OpenRouterProvider(LLMProvider):
         Extracts the assistant's message from the OpenRouter.ai response.
         """
         try:
-            # Based on the expected response format:
-            # {
-            #   "choices": [ { "message": { "content": "..." } } ]
-            #   ...
-            # }
             content = response_json["choices"][0]["message"]["content"]
             return str(content)
         except (KeyError, IndexError, TypeError) as e:

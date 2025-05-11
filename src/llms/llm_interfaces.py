@@ -25,7 +25,11 @@ class LLMProvider(ABC):
         self.api_key = api_key
 
     @abstractmethod
-    def _prepare_request_payload(self, model: str, user_message: str, system_prompt: Optional[str], image_path: Optional[str] = None) -> Dict[str, Any]:
+    def _prepare_request_payload(self,
+                                 model: str,
+                                 user_message: str,
+                                 system_prompt: Optional[str],
+                                 image_path: Optional[str] = None) -> Dict[str, Any]:
         """
         Prepares the provider-specific request payload.
         This method must be implemented by concrete provider classes.
@@ -55,7 +59,11 @@ class LLMProvider(ABC):
         """
         pass
 
-    def send_request(self, model: str, user_message: str, system_prompt: Optional[str] = None, image_path: Optional[str] = None) -> Dict[str, Any]:
+    def send_request(self,
+                     model: str,
+                     user_message: str,
+                     system_prompt: Optional[str] = None,
+                     image_path: Optional[str] = None) -> Dict[str, Any]:
         """
         Sends a request to the LLM provider.
 
@@ -72,7 +80,11 @@ class LLMProvider(ABC):
             requests.exceptions.RequestException: If the HTTP request fails.
             ValueError: If the response is not valid JSON.
         """
-        payload = self._prepare_request_payload(model=model, user_message=user_message, system_prompt=system_prompt, image_path=image_path)
+        payload = self._prepare_request_payload(model=model,
+                                                user_message=user_message,
+                                                system_prompt=system_prompt,
+                                                image_path=image_path)
+
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
@@ -95,7 +107,11 @@ class LLMProvider(ABC):
             logger.error(f"An unexpected error occurred during send_request: {e}", exc_info=True)
             raise ValueError(f"An unexpected error occurred: {e}")
 
-    def get_completion(self, model: str, user_message: str, system_prompt: Optional[str] = None, image_path: Optional[str] = None) -> str:
+    def get_completion(self,
+                       model: str,
+                       user_message: str,
+                       system_prompt: Optional[str] = None,
+                       image_path: Optional[str] = None) -> str:
         """
         A convenience method that sends a request and extracts the response message.
 
@@ -106,5 +122,8 @@ class LLMProvider(ABC):
         Returns:
             The extracted text message from the LLM's response.
         """
-        response_json = self.send_request(model=model, user_message=user_message, system_prompt=system_prompt, image_path=image_path)
+        response_json = self.send_request(model=model,
+                                          user_message=user_message,
+                                          system_prompt=system_prompt,
+                                          image_path=image_path)
         return self.extract_response_message(response_json)
