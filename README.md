@@ -9,3 +9,17 @@ Using Tesseract and multimodal LLMs to transform pdfs into markdown
     - [requests](https://pypi.org/project/requests/)
 - Dependencies:
     - [Tesseract](https://github.com/tesseract-ocr/tesseract)
+
+# TODOs
+## MUST DO
+- Add a splitter to images with multiple columns, like scientific literature
+- Add support for Ollama
+- Implement table to text conversion
+    - System prompt
+    - Table replacement
+
+## NICE TO HAVEs
+- FastAPI + Frontend
+    - Docker image
+- File cleanup
+- Database integration
