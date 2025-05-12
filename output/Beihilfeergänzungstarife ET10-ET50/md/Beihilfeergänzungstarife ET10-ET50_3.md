@@ -1,18 +1,9 @@
 Beihilfeergänzungstarife ET10-ET50
-# LKH Beihilfeergänzungstarife
-## II. Erstattungsfähige Leistungen
-### II. 1. Gebührenordnung für Ärzte (GOÄ)
+# II. 8. Rücktransport aus dem Ausland
 
+Erstattungsfähig sind Aufwendungen – abzüglich eines Eigenanteils von 500,- EUR – für einen medizinisch notwendigen, ärztlich angeordneten Rücktransport der versicherten Person in die Bundesrepublik Deutschland, die entstehen,
 
+- wenn aufgrund der Erkrankung eine ausreichendemedizinische Versorgung im Ausland nicht durchgeführt werden kann und die Erkrankung anschließend in Deutschland stationär weiterbehandelt wird oder
+- wenn die versicherte Person stationär im Ausland in einem Krankenhaus aufgenommen wurde und nach Prognose des dort behandelnden Arztes die stationäre Heilbehandlung noch mindestens 14 Tage nach dem Tag des Rücktransports medizinisch notwendig ist, die versicherte Person auch in Deutschland stationär weiterbehandelt wird und die voraussichtlichen Kosten der weiteren stationären Krankenhausbehandlung im Ausland nach dem Rücktransporttermin die Kosten des Rücktransports übersteigen würden.
 
-Nach vorheriger schriftlicher Zusage des Versicherers sind die Aufwendungen für ambulante und stationäre Heilbehandlungen durch Ärzte (nicht: Zahnärzte) auch über die Höchstsätze der GOÄ hinaus erstattungsfähig.
-
-
-
-| Tarif | ET10 | ET15 | ET20 | ET25 | ET30 | ET35 | ET40 | ET45 | ET50 |
-
-|-------|------|------|------|------|------|------|------|------|------|
-
-| Erstattungssatz in % | 10 | 15 | 20 | 25 | 30 | 35 | 40 | 45 | 50 |
-
-
+Der Erstattungssatz beträgt in den Tarifen ET10 – ET50 jeweils 100 %.

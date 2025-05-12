@@ -14,9 +14,7 @@ Using Tesseract and multimodal LLMs to transform pdfs into markdown
 ## MUST DO
 - Add a splitter to images with multiple columns, like scientific literature
 - Add support for Ollama
-- Implement table to text conversion
-    - System prompt
-    - Table replacement
+- Make use of env variables
 
 ## NICE TO HAVEs
 - FastAPI + Frontend

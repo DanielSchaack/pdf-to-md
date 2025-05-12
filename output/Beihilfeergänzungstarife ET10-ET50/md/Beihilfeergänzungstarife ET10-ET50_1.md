@@ -1,17 +1,16 @@
 Beihilfeergänzungstarife ET10-ET50
-# LKH Beihilfeergänzungstarife
-## I. Versicherungsfähigkeit
+# II. 6. Sehhilfen
 
+Aufwendungen für nicht beihilfefähige Sehhilfen – dies sind ausschließlich Brillengläser, Brillengestelle und Kontaktlinsen – sind bis zu einem Rechnungsbetrag von 300,- EUR pro Kalenderjahr erstattungsfähig. Die Kosten für Reinigungs- und Pflegemittel sind nicht erstattungsfähig.
 
+- Für den Tarif ET10 beträgt der Erstattungssatz in % 90 %.
+- Für den Tarif ET15 beträgt der Erstattungssatz in % 85 %.
+- Für den Tarif ET20 beträgt der Erstattungssatz in% 80 %.
+- Für den Tarif ET25 beträgt der Erstattungssatz in % 75 %.
+- Für den Tarif ET30 beträgt der Erstattungssatz in % 70 %.
+- Für den Tarif ET35 beträgt der Erstattungssatz 65 %.
+- Für den Tarif ET40 beträgt der Erstattungssatz in % 60 %.
+- Für den Tarif ET45 beträgt der Erstattungssatz in % 55 %.
+- Für den Tarif ET50 beträgt der Erstattungssatz in % 50 %.
 
-Nach diesen Tarifen sind Personen versicherungsfähig, für die bei dem Landeskrankenhilfe V.V.a.G. eine Restkosten-Vollversicherung nach den Tarifen A/S/Z Beihilfe besteht, die der Pflicht zur Versicherung gemäß § 193 Abs. 3 Versicherungsvertragsgesetz (VVG) entspricht. Die Tarife ET10 – ET50 sind nur in den folgenden Kombinationen mit den Tarifen A10 – A50 (Grundtarife) versicherbar und enden mit diesen:
-
-
-
-| ET10 | ET15 | ET20 | ET25 | ET30 | ET35 | ET40 | ET45 | ET50 |
-
-|------|------|------|------|------|------|------|------|------|
-
-| A10  | A15  | A20  | A25  | A30  | A35  | A40 oder A20, A22 | A45 oder A25, A22 | A50 oder A30, A22 |
-
-
+In Kombination mit den entsprechenden Grundtarifen – vgl. Tabelle unter I. Versicherungsfähigkeit – beträgt der Erstattungssatz 100 %.

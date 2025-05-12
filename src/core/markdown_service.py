@@ -175,6 +175,39 @@ class MarkdownService:
         logger.debug(f"Returning filtered text {filtered_text}")
         return filtered_text
 
-    # TODO
-    def replace_tables_with_texts(self, response_message: str, table_texts: List[str]) -> str:
-        return response_message
+    def replace_headers(self, markdown_text: str, headers: List[str]) -> str:
+        filtered_lines = []
+        i: int = 0
+        lines = io.StringIO(markdown_text)
+        for line in lines:
+            if line.startswith("#") and i < len(headers):
+                filtered_lines.append(headers[i])
+                i += 1
+            else:
+                filtered_lines.append(line.strip())
+
+        replaced_headers_text = "\n".join(filtered_lines)
+        logger.debug(f"Returning text with updated headers: {replaced_headers_text}")
+        return replaced_headers_text
+
+    def replace_tables(self, markdown_text: str, table_texts: List[str]) -> str:
+        filtered_lines = []
+        i: int = 0
+        is_table = False
+        lines = io.StringIO(markdown_text)
+        for line in lines:
+            if line.startswith("|") and not is_table and i < len(table_texts):
+                filtered_lines.append(table_texts[i])
+                i += 1
+                is_table = True
+            elif line.startswith("|") and is_table:  # Skip table lines
+                continue
+            elif is_table:  # Reset is_table
+                is_table = False
+                filtered_lines.append(line.strip())
+            else:
+                filtered_lines.append(line.strip())
+
+        replaced_tables_text = "\n".join(filtered_lines)
+        logger.debug(f"Returning text with updated headers: {replaced_tables_text}")
+        return replaced_tables_text

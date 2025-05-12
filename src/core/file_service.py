@@ -312,30 +312,47 @@ class FileService:
             )
             logger.debug(f"Chunk filepath is '{chunk_filepath}'")
 
-            # Ensure the output directory exists
-            if not os.path.exists(chunk_path):
-                try:
-                    os.makedirs(chunk_path)
-                    logger.info(f"Created directory '{chunk_path}'")
-                except Exception as e:
-                    logger.error(f"Failed to create output directory at {chunk_path}: {e}", exc_info=True)
-                    raise
-
             chunk_text = "\n".join(chunk)
             logger.debug(f"Chunk text is '{chunk_text}'")
+            save(chunk_path, chunk_filepath, chunk_text)
 
-            try:
-                with open(chunk_filepath, "w") as chunk_file:
-                    chunk_file.write(chunk_text)
-                    logger.info(f"Successfully written to file '{chunk_filepath}'")
+    def save_to_filesystem(self,
+                           filename_prefix: str,
+                           text: str,
+                           file_suffix: str = "md"):
+        file_dir = os.path.join(self.output_dir,
+                                filename_prefix,
+                                file_suffix)
+        logger.debug(f"Chunk path is '{file_dir}'")
 
-            except PermissionError as e:
-                logger.error(f"Permission denied when trying to write file at {chunk_filepath}: {e}", exc_info=True)
-                raise
+        filepath = os.path.join(file_dir, f"{filename_prefix}.{file_suffix}")
+        logger.debug(f"Chunk filepath is '{filepath}'")
 
-            except Exception as e:
-                logger.error(f"An error occurred while writing file at {chunk_path}: {e}", exc_info=True)
-                raise
+        save(file_dir, filepath, text)
+
+
+def save(file_dir: str, filepath: str, content: str):
+    # Ensure the output directory exists
+    if not os.path.exists(file_dir):
+        try:
+            os.makedirs(file_dir)
+            logger.info(f"Created directory '{filepath}'")
+        except Exception as e:
+            logger.error(f"Failed to create output directory at {filepath}: {e}", exc_info=True)
+            raise
+
+    try:
+        with open(filepath, "w") as chunk_file:
+            chunk_file.write(content)
+            logger.info(f"Successfully written to file '{filepath}'")
+
+    except PermissionError as e:
+        logger.error(f"Permission denied when trying to write file at {filepath}: {e}", exc_info=True)
+        raise
+
+    except Exception as e:
+        logger.error(f"An error occurred while writing file at {filepath}: {e}", exc_info=True)
+        raise
 
 
 def encode_image_to_base64(image_path: str) -> str:
