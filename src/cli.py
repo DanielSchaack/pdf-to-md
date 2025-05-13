@@ -1,12 +1,10 @@
+from core.document_processors import Processor, ProcessorFactory
+from core.document_service import DocumentService
+from core.file_service import FileService
+from core.llm_service import LlmService
 import logging
 import logging.config
 import argparse
-from core.document_service import DocumentService
-from core.markdown_service import MarkdownService
-from core.file_service import FileService
-from core.llm_service import LlmService
-from core.repository_service import RepositoryService
-import os
 
 logging.config.fileConfig("src/logging.conf", disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
@@ -17,20 +15,41 @@ if __name__ == '__main__':
         description="PDF processing with an LLM provider."
     )
 
-    # Argument for the PDF file path
     parser.add_argument(
-        "--pdf-path", "-p",
+        "--pdf-path",
         type=str,
         required=True,
         help="Path to the PDF document to be processed. "
     )
 
     parser.add_argument(
-        "--api-key", "-k",
+        "--provider",
         type=str,
-        help="API key for the Large Language Model (LLM) provider. "
-             "This is a required argument. Alternatively, you can set the "
-             "'API_KEY' environment variable."
+        help="The llm provider to use. Currently available: Openrouter, Ollama. Alternatively, you can set the 'API_PROVIDER' environment variable."
+    )
+
+    parser.add_argument(
+        "--image-model",
+        type=str,
+        help="The multimodal model from the provider to use. Tested with Mistral 3.1 Small. Alternatively, you can set the 'API_IMAGE_MODEL' environment variable."
+    )
+
+    parser.add_argument(
+        "--text-model",
+        type=str,
+        help="The text model from the provider to use. Tested with Mistral 3.1 Small. Alternatively, you can set the 'API_TEXT_MODEL' environment variable."
+    )
+
+    parser.add_argument(
+        "--api-url",
+        type=str,
+        help="Filetype to convert to. Defaults to 'md'. Alternatively, you can set the 'API_URL' environment variable."
+    )
+
+    parser.add_argument(
+        "--api-key",
+        type=str,
+        help="API key for the Large Language Model (LLM) provider. Alternatively, you can set the 'API_KEY' environment variable."
     )
 
     parser.add_argument(
@@ -40,38 +59,23 @@ if __name__ == '__main__':
         help="Directory where output files will be saved. Defaults to './output'."
     )
 
+    parser.add_argument(
+        "--output-type",
+        type=str,
+        default="md",
+        help="Filetype to convert to. Defaults to 'md'."
+    )
+
     args = parser.parse_args()
-
-    path = args.pdf_path
-
-    # Get API key from argument or environment variable
-    api_key = args.api_key
-    if not api_key:
-        api_key = os.getenv("API_KEY")
-        if not api_key:
-            parser.error(
-                "Error: LLM API key is required. Please provide it using "
-                "--api-key or by setting the API_KEY environment variable."
-            )
-
-    # Ensure the output directory exists, create it if necessary
-    output_dir = args.output_dir
-    if not os.path.exists(output_dir):
-        try:
-            os.makedirs(output_dir)
-            print(f"Info: Created output directory: {output_dir}")
-        except OSError as e:
-            parser.error(f"Error creating output directory '{output_dir}': {e}")
-    elif not os.path.isdir(output_dir):
-        parser.error(f"Error: '{output_dir}' exists but is not a directory.")
-
-    markdown_service = MarkdownService()
-    file_service = FileService(output_dir=output_dir)
-    llm_service = LlmService(api_key=api_key)
-    repository_service = RepositoryService()
-    document_service = DocumentService(markdown_service=markdown_service,
-                                       file_service=file_service,
-                                       llm_service=llm_service,
-                                       repository_service=repository_service)
-    document_service.process_pdf(pdf_path=path)
+    file_service = FileService(output_dir=args.output_dir)
+    llm_service = LlmService(provider=args.provider,
+                             image_model=args.image_model,
+                             text_model=args.text_model,
+                             api_url=args.api_url,
+                             api_key=args.api_key)
+    processor: Processor = ProcessorFactory.create_processor(filetype=args.output_type,
+                                                             llm_service=llm_service)
+    document_service = DocumentService(file_service=file_service)
+    document_service.process_pdf(processor=processor,
+                                 pdf_path=args.pdf_path)
 

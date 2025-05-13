@@ -100,7 +100,10 @@ class MarkdownService:
         logger.debug(f"Returning is_currently_table: {is_currently_table}")
         return headers, tables, is_currently_table
 
-    def convert_markdown_to_chunks(self, filename: str, markdown_text: str, header_level_cutoff: int = 3) -> List[List[str]]:
+    def convert_markdown_to_chunks(self,
+                                   filename: str,
+                                   markdown_text: str,
+                                   header_level_cutoff: int = 3) -> List[List[str]]:
         """
         Convert Markdown text into chunks based on headers and a specified cutoff level.
 

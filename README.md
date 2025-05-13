@@ -14,7 +14,6 @@ Using Tesseract and multimodal LLMs to transform pdfs into markdown
 ## MUST DO
 - Add a splitter to images with multiple columns, like scientific literature
 - Add support for Ollama
-- Make use of env variables
 - Add default cutoff header level based on maximum level in MD
 
 ## NICE TO HAVEs

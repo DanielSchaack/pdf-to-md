@@ -1,2 +1,0 @@
-Beihilfeergänzungstarife ET10-ET50
-Error: Could not parse LLM response.

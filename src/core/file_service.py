@@ -17,8 +17,7 @@ class FileService:
     def get_text_column_data(self,
                              image_path: str,
                              language: str = 'eng',
-                             tesseract_config: str = '--psm 3'
-                             ) -> List[Tuple[int, int, int, int, List[str], str, int]]:
+                             tesseract_config: str = '--psm 3') -> List[Tuple[int, int, int, int, List[str], str, int]]:
         """
         Analyzes an image to identify potential text columns using OpenCV and Tesseract,
         with added logging print statements.
@@ -33,16 +32,16 @@ class FileService:
             based on Tesseract's block-level output. Bounding boxes are in pixel coordinates
             with a top-left origin.
                 [
-                    {
-                        "x_min",
-                        "y_min",
-                        "x_max",
-                        "y_max",
-                        "words",
-                        "full_text",
-                        "tesseract_block_num"
-                    }
-                ]
+                        {
+                            "x_min",
+                            "y_min",
+                            "x_max",
+                            "y_max",
+                            "words",
+                            "full_text",
+                            "tesseract_block_num"
+                            }
+                        ]
             Returns an empty structure if an error occurs or no blocks are found.
         """
         logger.info(f"Starting column analysis for image: '{image_path}', Language: '{language}', Tesseract Config: '{tesseract_config}'")
@@ -58,11 +57,11 @@ class FileService:
 
             logger.debug("Calling Tesseract (pytesseract.image_to_data)...")
             data = pytesseract.image_to_data(
-                img,
-                lang=language,
-                config=tesseract_config,
-                output_type=Output.DICT
-            )
+                    img,
+                    lang=language,
+                    config=tesseract_config,
+                    output_type=Output.DICT
+                    )
             logger.info("Tesseract completed")
             logger.debug(f"Raw Tesseract data:\n{data}")
 
@@ -84,14 +83,12 @@ class FileService:
                     x, y, w, h = data['left'][i], data['top'][i], data['width'][i], data['height'][i]
 
                     if block_num not in found_blocks:
-                        found_blocks[block_num] = {
-                            'x_min': x,
-                            'y_min': y,
-                            'x_max': x + w,
-                            'y_max': y + h,
-                            'elements_count': 1,
-                            'words': []  # Initialize list to store words for this block
-                        }
+                        found_blocks[block_num] = {'x_min': x,
+                                                   'y_min': y,
+                                                   'x_max': x + w,
+                                                   'y_max': y + h,
+                                                   'elements_count': 1,
+                                                   'words': []}
 
                     # Add the text of the current element (word) to the block's word list
                     word_text = data['text'][i].strip()
@@ -117,15 +114,13 @@ class FileService:
                     continue
 
                 full_text_of_block = " ".join(words_in_block)
-                current_block = {
-                    "x_min": block_info["x_min"],
-                    "y_min": block_info["y_min"],
-                    "x_max": block_info["x_max"],
-                    "y_max": block_info["y_max"],
-                    "words": words_in_block,
-                    "full_text": full_text_of_block,
-                    "tesseract_block_num": block_num  # Retain original block number for reference
-                }
+                current_block = {"x_min": block_info["x_min"],
+                                 "y_min": block_info["y_min"],
+                                 "x_max": block_info["x_max"],
+                                 "y_max": block_info["y_max"],
+                                 "words": words_in_block,
+                                 "full_text": full_text_of_block,
+                                 "tesseract_block_num": block_num}
                 columns_data.append(current_block)
                 logger.debug(f"Block {block_num}: \n{current_block}")
 
@@ -161,8 +156,7 @@ class FileService:
                               dpi: int = 300,
                               colorspace: str = "rgb",  # "rgb", "gray", "cmyk"
                               use_alpha: bool = False,
-                              page_numbers: Optional[List[int]] = None  # None for all, or list of 1-based page numbers [1, 3, 5]
-                              ) -> List[str]:
+                              page_numbers: Optional[List[int]] = None) -> List[str]:  # None for all, or list of 1-based page numbers [1, 3, 5]
         """
         Converts PDF pages to images using PyMuPDF (Fitz) with configurable quality settings.
 
@@ -202,21 +196,19 @@ class FileService:
             logger.error(f"Error: PDF file not found at {pdf_path}")
             return []
 
-        image_dir_path = os.path.join(
-            self.output_dir,
-            filename,
-            image_format
-        )
+        image_dir_path = os.path.join(self.output_dir,
+                                      filename,
+                                      image_format)
         logger.debug(f"Image dir path is '{image_dir_path}'")
 
         if not os.path.exists(image_dir_path):
             logger.info(f"Creating output folder: {image_dir_path}")
             os.makedirs(image_dir_path)
 
+        saved_image_paths = []
+        pages_to_process = []
         with fitz.open(pdf_path) as doc:
-            saved_image_paths = []
             total_pages_in_doc = len(doc)
-            pages_to_process = []
 
             if page_numbers:
                 for p_num_1_based in page_numbers:
@@ -248,17 +240,13 @@ class FileService:
                     page = doc.load_page(page_index_0_based)
 
                     # Render page to an image (pixmap)
-                    pix = page.get_pixmap(
-                        dpi=dpi,
-                        colorspace=fitz_colorspace,
-                        alpha=use_alpha
-                    )
+                    pix = page.get_pixmap(dpi=dpi,
+                                          colorspace=fitz_colorspace,
+                                          alpha=use_alpha)
 
                     # Naming: page_001.png, page_002.png etc.
-                    image_filename = os.path.join(
-                        image_dir_path,
-                        f"{filename}_{str(page_num_1_based).zfill(page_num_padding)}.{image_format}"
-                    )
+                    image_filename = os.path.join(image_dir_path,
+                                                  f"{filename}_{str(page_num_1_based).zfill(page_num_padding)}.{image_format}")
 
                     # Save the pixmap as an image file
                     pix.save(image_filename)
@@ -274,11 +262,11 @@ class FileService:
                 logger.info(f"Successfully converted {len(saved_image_paths)} pages.")
             else:
                 logger.warn("No images were successfully converted.")
-            return saved_image_paths
+        return saved_image_paths
 
     def convert_chunks_to_files(self,
-                                filename_prefix: str,
-                                chunk_suffix: str,
+                                filename: str,
+                                filetype: str,
                                 chunks: List[List[str]]):
         """
         Convert a list of Markdown chunks into individual files with sequential filenames.
@@ -299,17 +287,13 @@ class FileService:
         logger.debug(f"Padding chunk number to {page_num_padding}")
 
         for index, chunk in enumerate(chunks):
-            chunk_path = os.path.join(
-                self.output_dir,
-                filename_prefix,
-                chunk_suffix
-            )
+            chunk_path = os.path.join(self.output_dir,
+                                      filename,
+                                      filetype)
             logger.debug(f"Chunk path is '{chunk_path}'")
 
-            chunk_filepath = os.path.join(
-                chunk_path,
-                f"{filename_prefix}_{str(index).zfill(page_num_padding)}.{chunk_suffix}"
-            )
+            chunk_filepath = os.path.join(chunk_path,
+                                          f"{filename}_{str(index).zfill(page_num_padding)}.{filetype}")
             logger.debug(f"Chunk filepath is '{chunk_filepath}'")
 
             chunk_text = "\n".join(chunk)
@@ -317,15 +301,15 @@ class FileService:
             save(chunk_path, chunk_filepath, chunk_text)
 
     def save_to_filesystem(self,
-                           filename_prefix: str,
+                           filename: str,
                            text: str,
-                           file_suffix: str = "md"):
+                           filetype: str):
         file_dir = os.path.join(self.output_dir,
-                                filename_prefix,
-                                file_suffix)
+                                filename,
+                                filetype)
         logger.debug(f"Chunk path is '{file_dir}'")
 
-        filepath = os.path.join(file_dir, f"{filename_prefix}.{file_suffix}")
+        filepath = os.path.join(file_dir, f"{filename}.{filetype}")
         logger.debug(f"Chunk filepath is '{filepath}'")
 
         save(file_dir, filepath, text)
