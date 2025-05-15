@@ -103,7 +103,7 @@ class MarkdownService:
     def convert_markdown_to_chunks(self,
                                    filename: str,
                                    markdown_text: str,
-                                   header_level_cutoff: int = 3) -> List[List[str]]:
+                                   header_level_cutoff: int = 3) -> Tuple[List[str], List[str]]:
         """
         Convert Markdown text into chunks based on headers and a specified cutoff level.
 
@@ -114,15 +114,14 @@ class MarkdownService:
                                                  Cuts chunk with each header level equal or less than to the cutoff. Defaults to 3.
 
         Returns:
-            List[List[str]]: A list of chunks, where each chunk is a list of strings representing lines in that chunk.
-
-        Raises:
-            ValueError: If the header_level_cutoff is less than or equal to 0.
+            List[str]: A list of chunks as strings
+            List[str]: A list of titles as strings
         """
         header_map: Dict[int, Any] = {}
         current_chunk: List[str] = []
         current_chunk.append(filename)
         chunks: List[List[str]] = []
+        chunk_titles: List[str] = []
 
         lines = io.StringIO(markdown_text)
         for line in lines:
@@ -131,18 +130,25 @@ class MarkdownService:
                 header_level, end_position = self.count_consecutive_chars(line, 0, "#")
                 header_map[header_level] = line.strip()
 
+                # Continue with current chunk
                 if header_level > header_level_cutoff:
                     current_chunk.append(line.strip())
                     logger.debug(f"Added header line '{line.strip()}' to current chunk")
-                    continue  # continue with current chunk
+                    continue
 
                 # Append header for first chunk, otherwise missing
-                if len(chunks) == 0:
+                if len(chunks) == 0 and len(chunk_titles) == 0:
                     current_chunk.append(line.strip())
+                    chunk_titles.append(line.strip())
                     logger.debug(f"Added header line '{line.strip()}' to first chunk")
 
                 # Start of next chunk
-                if len(current_chunk) > len(header_map) + 1:    # More lines than just the context
+                if len(current_chunk) > len(header_map) + 1:    # More lines than just the context, +1 for filename
+
+                    # Remove all previously available higher level
+                    keys_to_delete = [key for key in header_map if key > header_level]
+                    for key in keys_to_delete:
+                        header_map.pop(key)
 
                     chunks.append(current_chunk)
                     logger.debug(f"Added current chunk '{current_chunk}' to chunks")
@@ -152,6 +158,7 @@ class MarkdownService:
                     current_chunk.append(filename)
                     for header in header_map.values():
                         current_chunk.append(header)
+                    chunk_titles.append(line.strip())
                     logger.debug(f"Cleared and added context to current chunk, now: '{current_chunk}'")
 
                 continue  # Don't add regular line
@@ -164,8 +171,14 @@ class MarkdownService:
             chunks.append(current_chunk)
             logger.debug(f"Added leftover chunk '{current_chunk}' to all chunks")
 
+        chunk_texts: List[str] = []
+        for chunk in chunks:
+            chunk_text = "\n".join(chunk)
+            logger.debug(f"Chunk text is '{chunk_text}'")
+            chunk_texts.append(chunk_text)
+
         logger.debug(f"Returning chunks '{chunks}'")
-        return chunks
+        return chunk_texts, chunk_titles
 
     def remove_lines_starting_with(self, text: str, char: str = "`"):
         filtered_lines = []

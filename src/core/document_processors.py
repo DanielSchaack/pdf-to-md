@@ -27,9 +27,9 @@ class Processor(ABC):
         pass
 
     @abstractmethod
-    def refine_headers_tables(self,
-                              input_text: str,
-                              headers: List[str]) -> Tuple[str, List[str], List[List[str]], bool]:
+    def refine_headers(self,
+                       input_text: str,
+                       headers: List[str]) -> Tuple[str, List[str], List[List[str]], bool]:
         pass
 
     @abstractmethod
@@ -45,12 +45,12 @@ class Processor(ABC):
     @abstractmethod
     def convert_text_to_chunks(self,
                                filename: str,
-                               input_text: str,
-                               header_level_cutoff: int = 3) -> List[List[str]]:
+                               aggregated_text: str,
+                               header_level_cutoff: int = 3) -> Tuple[List[str], List[str]]:
         pass
 
     @abstractmethod
-    def integrate_messages(self, ocr_responses: List[str]) -> str:
+    def integrate_messages(self, extracted_images: List[str]) -> str:
         pass
 
 
@@ -152,9 +152,9 @@ Proceed with OCR and Markdown formatting. **Precision is paramount.**
                                                                     user_message=user_message)
         return self.markdown_service.remove_lines_starting_with(response_message, "`")
 
-    def refine_headers_tables(self,
-                              input_text: str,
-                              headers: List[str]) -> Tuple[str, List[str], List[List[str]], bool]:
+    def refine_headers(self,
+                       input_text: str,
+                       headers: List[str]) -> Tuple[str, List[str], List[List[str]], bool]:
         new_headers, tables, is_table = self.markdown_service.get_markdown_headers_and_tables(input_text)
         if len(headers) > 0:
             headers = self.correct_header_levels(headers, new_headers)
@@ -162,13 +162,6 @@ Proceed with OCR and Markdown formatting. **Precision is paramount.**
         else:
             headers = new_headers
 
-        if len(tables) > 0 and not is_table:
-            context = "\n".join(headers)
-            table_texts = self.convert_tables_to_texts(tables, context)
-            cleansed_response_message = self.markdown_service.replace_tables(input_text, table_texts)
-
-        if cleansed_response_message:
-            return cleansed_response_message, headers, tables, is_table
         return input_text, headers, tables, is_table
 
     def convert_tables_to_texts(self,
@@ -349,14 +342,15 @@ Focus on maintaining the logical structure implied by the content and numbering,
 
     def convert_text_to_chunks(self,
                                filename: str,
-                               input_text: str,
-                               header_level_cutoff: Optional[int] = None):
+                               aggregated_text: str,
+                               header_level_cutoff: Optional[int] = None) -> Tuple[List[str], List[str]]:
+
         return self.markdown_service.convert_markdown_to_chunks(filename=filename,
-                                                                markdown_text=input_text,
+                                                                markdown_text=aggregated_text,
                                                                 header_level_cutoff=header_level_cutoff)
 
-    def integrate_messages(self, ocr_responses: List[str]) -> str:
-        complete_markdown = "\n".join(ocr_responses)
+    def integrate_messages(self, extracted_images: List[str]) -> str:
+        complete_markdown = "\n".join(extracted_images)
         headers, tables, is_table = self.markdown_service.get_markdown_headers_and_tables(complete_markdown)
 
         if len(tables) > 0:

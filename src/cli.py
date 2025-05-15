@@ -1,6 +1,7 @@
 from core.document_processors import Processor, ProcessorFactory
 from core.document_service import DocumentService
 from core.file_service import FileService
+from core.repository_service import RepositoryService, get_db, create_db_and_tables
 from core.llm_service import LlmService
 import logging
 import logging.config
@@ -67,6 +68,10 @@ if __name__ == '__main__':
     )
 
     args = parser.parse_args()
+    create_db_and_tables()
+    db_generator = get_db()
+    db_session_for_cli = next(db_generator)
+    repository_service = RepositoryService(db_session=db_session_for_cli)
     file_service = FileService(output_dir=args.output_dir)
     llm_service = LlmService(provider=args.provider,
                              image_model=args.image_model,
@@ -75,7 +80,8 @@ if __name__ == '__main__':
                              api_key=args.api_key)
     processor: Processor = ProcessorFactory.create_processor(filetype=args.output_type,
                                                              llm_service=llm_service)
-    document_service = DocumentService(file_service=file_service)
+
+    document_service = DocumentService(file_service=file_service, repository_service=repository_service)
     document_service.process_pdf(processor=processor,
                                  pdf_path=args.pdf_path)
 

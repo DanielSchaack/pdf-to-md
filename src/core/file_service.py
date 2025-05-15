@@ -56,12 +56,10 @@ class FileService:
             logger.info(f"Image loaded successfully. Dimensions: {img.shape[1]}x{img.shape[0]} (WxH)")
 
             logger.debug("Calling Tesseract (pytesseract.image_to_data)...")
-            data = pytesseract.image_to_data(
-                    img,
-                    lang=language,
-                    config=tesseract_config,
-                    output_type=Output.DICT
-                    )
+            data = pytesseract.image_to_data(img,
+                                             lang=language,
+                                             config=tesseract_config,
+                                             output_type=Output.DICT)
             logger.info("Tesseract completed")
             logger.debug(f"Raw Tesseract data:\n{data}")
 
@@ -152,6 +150,7 @@ class FileService:
     def convert_pdf_to_images(self,
                               pdf_path: str,
                               filename: str,
+                              file_id: str,
                               image_format: str = "png",
                               dpi: int = 300,
                               colorspace: str = "rgb",  # "rgb", "gray", "cmyk"
@@ -198,6 +197,7 @@ class FileService:
 
         image_dir_path = os.path.join(self.output_dir,
                                       filename,
+                                      str(file_id),
                                       image_format)
         logger.debug(f"Image dir path is '{image_dir_path}'")
 
@@ -266,8 +266,10 @@ class FileService:
 
     def convert_chunks_to_files(self,
                                 filename: str,
+                                file_id: int,
                                 filetype: str,
-                                chunks: List[List[str]]):
+                                chunks: List[str],
+                                titles: List[str]):
         """
         Convert a list of Markdown chunks into individual files with sequential filenames.
 
@@ -281,31 +283,35 @@ class FileService:
             PermissionError: If there are insufficient permissions to write to the output directory.
         """
 
+        assert len(chunks) == len(titles), "Each chunk needs its own title"
+
         amount_chunks: int = len(chunks)
         logger.debug(f"Creating {amount_chunks} chunks")
         page_num_padding = len(str(amount_chunks))
         logger.debug(f"Padding chunk number to {page_num_padding}")
 
-        for index, chunk in enumerate(chunks):
+        for index, chunk_text in enumerate(chunks):
+            chunk_title = titles[index]
             chunk_path = os.path.join(self.output_dir,
                                       filename,
+                                      str(file_id),
                                       filetype)
             logger.debug(f"Chunk path is '{chunk_path}'")
 
             chunk_filepath = os.path.join(chunk_path,
-                                          f"{filename}_{str(index).zfill(page_num_padding)}.{filetype}")
+                                          f"{filename}_{chunk_title}_{str(index).zfill(page_num_padding)}.{filetype}")
             logger.debug(f"Chunk filepath is '{chunk_filepath}'")
 
-            chunk_text = "\n".join(chunk)
-            logger.debug(f"Chunk text is '{chunk_text}'")
             save(chunk_path, chunk_filepath, chunk_text)
 
     def save_to_filesystem(self,
                            filename: str,
+                           file_id: int,
                            text: str,
                            filetype: str):
         file_dir = os.path.join(self.output_dir,
                                 filename,
+                                str(file_id),
                                 filetype)
         logger.debug(f"Chunk path is '{file_dir}'")
 

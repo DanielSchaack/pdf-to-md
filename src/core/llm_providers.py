@@ -174,10 +174,20 @@ class LLMProviderFactory:
                 logger.warn(f"Manually set openrouter URL to {api_url}")
             logger.debug("Returning openrouter")
             return OpenRouterProvider(image_model=image_model, text_model=text_model, api_url=api_url, api_key=api_key)
-        # TODO
-        # elif provider_name.lower() == "ollama":
-        #     logger.debug("Returning ollama", exc_info=True)
-        #     return OllamaProvider(api_url=api_url, api_key=api_key)
+        elif provider_name.lower() == "ollama":
+            logger.debug("Returning ollama")
+            # assert api_key, "An api key is required to make use of openrouter"
+            if not image_model:
+                image_model: str = "mistralai/mistral-small-3.1-24b-instruct:free"
+                logger.warn(f"Manually set ollama text model to {image_model}")
+            if not text_model:
+                text_model: str = "mistralai/mistral-small-3.1-24b-instruct:free"
+                logger.warn(f"Manually set ollama text model to {text_model}")
+            if not api_url:
+                api_url = "https://openrouter.ai/api/v1/chat/completions"
+                logger.warn(f"Manually set openrouter URL to {api_url}")
+            logger.debug("Returning openrouter")
+            return OllamaProvider(image_model=image_model, text_model=text_model, api_url=api_url, api_key=api_key)
         else:
             raise ValueError(f"Unsupported LLM provider: {provider_name}")
 
@@ -216,10 +226,9 @@ class OpenRouterProvider(LLMProvider):
                     mime_type = f"image/{image_format}"
                 data_url = f"data:{mime_type};base64,{base64_image}"
                 logger.debug(f"Encoded image as: {data_url}")
-                user_content_parts.append({
-                    "type": "image_url",
-                    "image_url": {"url": data_url}
-                    })
+                user_content_parts.append({"type": "image_url",
+                                           "image_url": {"url": data_url}
+                                           })
             except FileNotFoundError:
                 logger.error(f"File not found at path '{image_path}'")
                 raise
@@ -229,10 +238,9 @@ class OpenRouterProvider(LLMProvider):
 
         messages.append({"role": "user", "content": user_content_parts})
 
-        payload = {
-                "model": model,
-                "messages": messages
-                }
+        payload = {"model": model,
+                   "messages": messages
+                   }
 
         logger.debug(f"Prepared request payload: {payload}")
         return payload
@@ -247,3 +255,68 @@ class OpenRouterProvider(LLMProvider):
         except (KeyError, IndexError, TypeError) as e:
             logger.error(f"Error extracting message from response: {e}. Full response: {response_json}", exc_info=True)
             return "Error: Could not parse LLM response."
+
+
+class OllamaProvider(LLMProvider):
+    """
+    Concrete implementation for the Ollama LLM provider,
+    targeting an API endpoint similar to /api/generate.
+    """
+
+    def _prepare_request_payload(self,
+                                 model: str,
+                                 user_message: str,
+                                 system_prompt: Optional[str] = None,
+                                 image_path: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Prepares the request payload specific to Ollama's /api/generate endpoint format.
+        Request format:
+        {
+          "model": "model_name",
+          "prompt": "full_prompt_string",
+          "stream": false,
+          "keep-alive": 30
+          "images": ["base64_image_string"] (optional)
+        }
+        """
+        # Construct the full prompt string
+        full_prompt_parts = []
+        if system_prompt:
+            full_prompt_parts.append(system_prompt)
+        full_prompt_parts.append(user_message)
+        full_prompt = "\n\n".join(full_prompt_parts) if system_prompt else user_message
+
+        payload: Dict[str, Any] = {
+            "model": model,
+            "prompt": full_prompt,
+            "stream": False,
+            "keep-alive": 30
+        }
+
+        if image_path:
+            try:
+                logger.debug(f"Attempting to encode image at path: {image_path} for Ollama /api/generate style payload")
+                base64_image = encode_image_to_base64(image_path)
+                payload["images"] = [base64_image]
+                logger.debug(f"Added base64 image to 'images' field for: {image_path}")
+            except FileNotFoundError:
+                logger.error(f"File not found at path '{image_path}' for Ollama payload.")
+                raise
+            except Exception as e:
+                logger.error(f"Error encoding image at path '{image_path}' for Ollama: {e}")
+                raise RuntimeError(f"Failed to process image at {image_path} for Ollama payload.")
+
+        logger.debug(f"Prepared Ollama (/api/generate style) request payload: {json.dumps(payload, indent=2)}")
+        return payload
+
+    def extract_response_message(self, response_json: Dict[str, Any]) -> str:
+        """
+        Extracts the assistant's message from the Ollama response.
+        Refers to: https://github.com/ollama/ollama/blob/main/docs/api.md#generate-a-completion
+        """
+        try:
+            content = response_json["response"]
+            return str(content)
+        except (KeyError, IndexError, TypeError) as e:
+            logger.error(f"Error extracting message from Ollama response: {e}. Full response: {response_json}", exc_info=True)
+            raise

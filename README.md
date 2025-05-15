@@ -6,6 +6,8 @@ Using Tesseract and multimodal LLMs to transform pdfs into markdown
     - [PyMuPDF](https://github.com/pymupdf/PyMuPDF)
     - [pytesseract](https://github.com/h/pytesseract)
     - [opencv-python](https://github.com/opencv/opencv-python)
+    - [Pydantic](https://github.com/pydantic/pydantic)
+    - [sqlalchemy](https://github.com/sqlalchemy/sqlalchemy)
     - [requests](https://pypi.org/project/requests/)
 - Dependencies:
     - [Tesseract](https://github.com/tesseract-ocr/tesseract)
