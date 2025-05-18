@@ -167,7 +167,6 @@ Proceed with OCR and Markdown formatting. **Precision is paramount.**
     def convert_tables_to_texts(self,
                                 tables: List[List[str]],
                                 context: str = None) -> List[str]:
-        # TODO more examples
         system_prompt = """
 # Role: Table-to-Text Converter
 
@@ -185,9 +184,6 @@ Proceed with OCR and Markdown formatting. **Precision is paramount.**
 
     **Input**
     ```
-    (Optional) Context:
-    Visual Aids
-
     Table:
     | Tariff | ET10 | ET15 | ET20 | ET25 | ET30 | ET35 | ET40 | ET45 | ET50 |
     |---|---|---|---|---|---|---|---|---|---|
@@ -206,42 +202,70 @@ Proceed with OCR and Markdown formatting. **Precision is paramount.**
 
     **Input**
     ```
-    (Optional) Context:
-    Visual Aids
-
     Table:
-    | Tariff | ET10 | ET15 | ET20 | ET25 | ET30 | ET35 | ET40 | ET45 | ET50 |
-    |---|---|---|---|---|---|---|---|---|---|
-    | Reimbursement Rate in % | 90 | 85 | 80 | 75 | 70 | 65 | 60 | 55 | 50 |
+    ```
+    | Tarif | Erwachsene ab Alter 21 | Kinder/Jugendliche bis Alter 20 |
+    |-------|------------------------|--------------------------------|
+    | GUP0  | 0 EUR                  | 0 EUR                          |
+    | GUP500| 500 EUR                | 250 EUR                        |
+    | GUP900| 900 EUR                | 450 EUR                        |
+    | GUP1.8| 1.800 EUR              | 900 EUR                        |
     ```
 
     **Expected Output:**
     ```markdown
-    - For the Tariff ET10, the Reimbursement Rate in % for Visual Aids is 90%.
-    - For the Tariff ET15, the Reimbursement Rate in % for Visual Aids is 85%.
-    - For the Tariff ET20, the Reimbursement Rate in % for Visual Aids is 80%.
-    [...]
+    - Der Tarif GUP0 für Erwachsene ab Alter 21 beträgt 0 Euro.
+    - Der Tarif GUP0 für Kinder/Jugendliche bis Alter 20 beträgt 0 Euro.
+    - Der Tarif GUP500 für Erwachsene ab Alter 21 beträgt 500 Euro.
+    - Der Tarif GUP500 für Kinder/Jugendliche bis Alter 20 beträgt 250 Euro.
+    - Der Tarif GUP900 für Erwachsene ab Alter 21 beträgt 900 Euro.
+    - Der Tarif GUP900 für Kinder/Jugendliche bis Alter 20 beträgt 450 Euro.
+    - Der Tarif GUP1.8 für Erwachsene ab Alter 21 beträgt 1.800 Euro.
+    - Der Tarif GUP1.8 für Kinder/Jugendliche bis Alter 20 beträgt 900 Euro.
     ```
 
 ---
 
     **Input**
     ```
-    (Optional) Context:
-    Visual Aids
-
     Table:
-    | Tariff | ET10 | ET15 | ET20 | ET25 | ET30 | ET35 | ET40 | ET45 | ET50 |
-    |---|---|---|---|---|---|---|---|---|---|
-    | Reimbursement Rate in % | 90 | 85 | 80 | 75 | 70 | 65 | 60 | 55 | 50 |
+    ```markdown
+    | Wann und für wen? | Was? | Wie oft? | Abrechnung nach GOÄ |
+    |---|---|---|---|
+    | | Vorsorgeuntersuchungen nach Alter¹ | | |
+    | 0 – 10 J. | Vorsorgeleistungen für | Jede U-Untersuchung ein Mal | Die Untersuchungen U1, U2, U3, U4, U5, U6, U7, U7a, U8, U9, U10 und U11 werden jeweils nach GOÄ 25 oder 26 abgerechnet. |
+    | w / m² | Kinder | | |
+    | | zur Früherkennung von | | |
+    | | Krankheiten | | |
+    | | | | GOÄ Leistungsbeschreibung |
+    | | | | 25 Neugeborenen-Erstuntersuchung |
+    | | | | 26 Früherkennungsuntersuchung beim Kind |
+    | | | | 3691.H1 Zu U1 – Screening auf Sichelzellkrankheit |
+    | | | | 4872 Zu U1 – Screening auf Spinale Muskelatrophie |
+    [...]
+    | 13 – 14 J. | Vorsorgeleistungen für | ein Mal | GOÄ |
+    | w / m | Jugendliche | | 32 Untersuchung nach Jugendarbeitsschutzgesetz |
+    | | Jugendgesundheitsuntersuchung (J1) | | 250 Blutabnahme |
+    | 16 – 17 J. | Vorsorgeleistungen für | ein Mal | GOÄ Leistungsbeschreibung |
+    | w / m | Jugendliche | | 32 Untersuchung nach Jugendarbeitsschutzgesetz |
+    | | Jugendgesundheitsuntersuchung (J2) | | 250 Blutabnahme |
+    | | | | 3514 Glukose |
+    ```
+
     ```
 
     **Expected Output:**
     ```markdown
-    - For the Tariff ET10, the Reimbursement Rate in % for Visual Aids is 90%.
-    - For the Tariff ET15, the Reimbursement Rate in % for Visual Aids is 85%.
-    - For the Tariff ET20, the Reimbursement Rate in % for Visual Aids is 80%.
+    - Für das Alter von 0 bis 10 Jahren wird die Vorsorgeleistung für Kinder zur Früherkennung von Krankheiten jede U-Untersuchung ein Mal nach GOÄ-Ziffer 25 Neugeborenen-Erstuntersuchung abgerechnet.
+    - Für das Alter von 0 bis 10 Jahren wird die Vorsorgeleistung für Kinder zur Früherkennung von Krankheiten jede U-Untersuchung ein Mal nach GOÄ-Ziffer 26 Früherkennungsuntersuchung beim Kind abgerechnet.
+    - Für das Alter von 0 bis 10 Jahren wird die Vorsorgeleistung für Kinder zur Früherkennung von Krankheiten jede U-Untersuchung ein Mal nach GOÄ-Ziffer 3691.H1 Screening auf Sichelzellenkrankheit abgerechnet.
+    - Für das Alter von 0 bis 10 Jahren wird die Vorsorgeleistung für Kinder zur Früherkennung von Krankheiten jede U-Untersuchung ein Mal nach GOÄ-Ziffer 4872 Screening auf Spinale Muskelerkrankung abgerechnet.
     [...]
+    - Für das Alter von 13 bis 14 Jahren wird die Vorsorgeleistung für Jugendliche Jugendgesundheitsuntersuchung (J1) ein Mal bei der GOÄ-Ziffer 32 "Untersuchung nach Jugendarbeitsschutzgesetz" abgerechnet
+    - Für das Alter von 13 bis 14 Jahren wird die Vorsorgeleistung für Jugendliche Jugendgesundheitsuntersuchung (J1) ein Mal bei der GOÄ-Ziffer 250 "Blutabnahme" abgerechnet
+    - Für das Alter von 16 bis 17 Jahren wird die Vorsorgeleistung für Jugendliche Jugendgesundheitsuntersuchung (J2) ein Mal bei der GOÄ-Ziffer 32 "Untersuchung nach Jugendarbeitsschutzgesetz" abgerechnet
+    - Für das Alter von 16 bis 17 Jahren wird die Vorsorgeleistung für Jugendliche Jugendgesundheitsuntersuchung (J2) ein Mal bei der GOÄ-Ziffer 250 "Blutabnahme" abgerechnet
+    - Für das Alter von 16 bis 17 Jahren wird die Vorsorgeleistung für Jugendliche Jugendgesundheitsuntersuchung (J2) ein Mal bei der GOÄ-Ziffer 3514 "Glukose" abgerechnet
     ```
 
 **Constraint Checklist:**

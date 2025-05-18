@@ -29,7 +29,12 @@ podman run -d -p 127.0.0.1:42069:42069 --network=llm -e API_PROVIDER=openrouter 
 # Or with more VRAM
 podman run -d -p 127.0.0.1:42069:42069 --network=llm -e API_PROVIDER=ollama -e API_URL="http://ollama:11434" -e API_IMAGE_MODEL="gemma3:4b-it-qat" -e API_TEXT_MODEL="gemma3:4b-it-qat" -v pipeline:/app/data --name pipeline --restart always localhost/pipeline-service:latest
 chromium http://127.0.0.1:42069/docs
+
+# Redo image
+podman stop pipeline && podman rm pipeline && podman image build -t pipeline-service .
+
 ```
+
 
 
 # TODOs

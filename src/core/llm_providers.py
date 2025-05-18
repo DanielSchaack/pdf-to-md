@@ -315,7 +315,7 @@ class OllamaProvider(LLMProvider):
                 logger.error(f"Error encoding image at path '{image_path}' for Ollama: {e}")
                 raise RuntimeError(f"Failed to process image at {image_path} for Ollama payload.")
 
-        logger.debug(f"Prepared Ollama (/api/generate style) request payload: {json.dumps(payload, indent=2)}")
+        logger.debug("Prepared Ollama (/api/generate style) request payload")
         return payload
 
     def extract_response_message(self, response_json: Dict[str, Any]) -> str:
@@ -324,6 +324,7 @@ class OllamaProvider(LLMProvider):
         Refers to: https://github.com/ollama/ollama/blob/main/docs/api.md#generate-a-completion
         """
         try:
+            logger.debug(f"Received response:\n{response_json}")
             content = response_json["response"]
             return str(content)
         except (KeyError, IndexError, TypeError) as e:
