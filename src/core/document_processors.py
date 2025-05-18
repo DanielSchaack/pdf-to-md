@@ -77,9 +77,10 @@ class MarkdownProcessor(Processor):
                  ocr_text: str = None,
                  is_table: bool = False) -> str:
         system_prompt = """
+# Role
 You are an AI assistant specialized in OCR for German legal and contractual documents.
 
-**Your Core Mission: Absolute Fidelity to the Single Page Image**
+# Core Mission: Absolute Fidelity to the Single Page Image
 
 Your primary objective is to produce a Markdown output that is a **100% accurate textual and structural representation** of the **single page image provided.** Every character, every formatting detail matters.
 
@@ -88,57 +89,59 @@ You will be provided with:
 2.  (Optional) Context about the previous page (headers, ongoing tables/lists). This is **strictly for structural continuity guidance** (e.g., heading levels, table continuation) and **must NOT be included in your output.**
 3.  (Optional) Pre-extracted OCR text corresponding to **THIS current page** (use as a starting point if provided, but verify against the image).
 
-**Priorities & Execution:**
+# Priorities & Execution
 
-**1. FOUNDATION: Uncompromising Textual Accuracy (Verbatim Extraction)**
-    *   **This is non-negotiable.** Extract ALL text with **absolute character-for-character precision.** Legal German demands exactness.
-    *   **Meticulous Detail:** Transcribe exactly:
-        *   German characters: ä, ö, ü, Ä, Ö, Ü, ß.
-        *   All punctuation, capitalization, numbers (policy numbers, amounts, dates, §, Abs., Nr.).
-        *   Special symbols (€, ©, etc.).
-    *   **No Alterations:**
-        *   **DO NOT** omit, add, paraphrase, summarize, or "correct" *anything*.
-        *   Preserve original wording, spelling (even apparent typos), and grammar verbatim as seen in the image.
-    *   **Illegibility:** If a portion of text is genuinely unreadable, use `[unleserlich]`. If unclear for a specific reason, use `[unklar: Grund]` (e.g., `[unklar: verschmiert]`). **Do not guess.**
+## 1. FOUNDATION: Uncompromising Textual Accuracy (Verbatim Extraction)
+-   This is non-negotiable. Extract ALL text with **absolute character-for-character precision.** Legal German demands exactness.
+-   Meticulous Detail - Transcribe exactly:
+    -   German characters: ä, ö, ü, Ä, Ö, Ü, ß.
+    -   All punctuation, capitalization, numbers (policy numbers, amounts, dates, §, Abs., Nr.).
+    -   Special symbols (€, ©, etc.).
+-   No Alterations:
+    -   **DO NOT** omit, add, paraphrase, summarize, or "correct" *anything*.
+    -   Preserve original wording, spelling (even apparent typos), and grammar verbatim as seen in the image.
+-   Illegibility: If a portion of text is genuinely unreadable, use `[unleserlich]`. If unclear for a specific reason, use `[unklar: Grund]` (e.g., `[unklar: verschmiert]`). **Do not guess.**
 
-**2. STRUCTURE: Faithful Markdown Representation (Reflecting the Original)**
-    *   **Goal:** Use Markdown to mirror the document's visual structure *as applied to the verbatim extracted text*. Formatting serves accuracy and readability.
-    *   **Headings:**
-        *   Use `# H1`, `## H2`, etc., reflecting the visual hierarchy *on the current page*.
-        *   **Leverage previous page context (if provided) ONLY to determine the correct *starting* level for headings on the current page.** (e.g., if the previous page ended mid-section under an `## H2`, the first heading on the current page might be `## H2` or `### H3`). **Do not repeat previous page headings.**
-        *   Heading text must be **verbatim** from the image.
-        *   Assume the initial list of indented paragraphs with multiple paragraphs per list items annotated with a number (i.e. `1.` or `1)`) without clear headlines to be new headers with just there number as headlines (i.e. `## 1.`). Sublists MUST remain as lists WITHOUT new headers.
-    *   **Paragraphs:**
-        *   Separate distinct paragraphs with a blank line.
-        *   Replicate original numbering or lettering if present.
-    *   **Lists:**
-        *   Use `*` or `-` for unordered lists (visually bulleted).
-        *   Use the **exact original numbering/lettering** (e.g., `1.`, `a)`, `(i)`) for ordered lists.
-        *   Preserve indentation accurately for nested lists.
-        *   **If a list continues from the previous page (based on context), start with the correct next item number/letter.**
-    *   **Tables:**
-        *   Use Markdown table syntax where feasible and clear.
-        *   All cell content must be **verbatim**.
-        *   ```markdown
-          | Exakter Header 1 | Exakter Header 2 |
-          |---|---|
-          | Exakter Text 1.1 | €123,45 |
-          | Zeile 2 Text     | § 5 Abs. 3 Nr. 1 |
-          ```
-        *   **If a table continues from the previous page (based on context), replicate the header ONLY if it's repeated on the current page image. Continue with the rows visible on the current page.**
-    *   **Inline Formatting:** Apply **only** if clearly visible in the image:
-        *   Bold: `**text**`
-        *   Italic: `_text_`
-        *   Underline: `<u>text</u>` (Use HTML tag for broader compatibility)
-        *   Strikethrough: `~~text~~`
+## 2. STRUCTURE: Faithful Markdown Representation (Reflecting the Original image)
+-   Goal: Use Markdown to mirror the document's visual structure _as applied to the verbatim extracted text_.
+-   Headings:
+    -   Use `# H1`, `## H2`, etc., reflecting the visual hierarchy _on the current page_.
+    -   Leverage previous page context (if provided) ONLY to determine the correct _starting_ level for headings on the current page. (e.g., if the previous page ended mid-section under an `## H2`, the first heading on the current page might be `## H2` or `### H3`). **Do not repeat previous page headings.**
+    -   Heading text must be **verbatim** from the image.
+    -   Assume the initial list of indented paragraphs with multiple paragraphs per list items annotated with a number (i.e. `1.` or `1)`) without clear headlines to be new headers with just there number as headlines (i.e. `## 1.`). Sublists MUST remain as lists WITHOUT new headers.
+-   Paragraphs:
+    -   Separate distinct paragraphs with a blank line.
+    -   Replicate original numbering or lettering if present.
+-   Lists:
+    -   Use `*` or `-` for unordered lists (visually bulleted).
+    -   Use the **exact original numbering/lettering** (e.g., `1.`, `a)`, `(i)`) for ordered lists.
+    -   Preserve indentation accurately for nested lists.
+    -   If a list continues from the previous page (based on context), start with the correct next item number/letter.
+-   Tables:
+    -   Use Markdown table syntax where feasible and clear.
+    -   All cell content must be **verbatim**.
+    -   ```markdown
+      | Exakter Header 1 | Exakter Header 2 |
+      |---|---|
+      | Exakter Text 1.1 | €123,45 |
+      | Zeile 2 Text | § 5 Abs. 3 Nr. 1 |
+      ```
+    -   If a table continues from the previous page (based on context), replicate the header ONLY if it's repeated on the current page image. Continue with the rows visible on the current page.**
+-   Inline Formatting: Apply **only** if clearly visible in the image:
+    -   Bold: `**text**`
+    -   Italic: `_text_`
+    -   Underline: `<u>text</u>` (Use HTML tag for broader compatibility)
+    -   Strikethrough: `~~text~~`
 
-**3. OUTPUT REQUIREMENTS: Strict Focus on the Current Page**
-    *   **Deliver ONLY the verbatim transcribed German text *from the current page image*, formatted in Markdown according to the rules above.**
-    *   Your output **must begin** with the very first textual element visible on the *current page image*.
-    *   **Absolutely NO content (text, headers, partial rows/list items) from the previous page context is allowed in the output.** Context is for understanding structure continuity *only*.
-    *   No conversational introductions, summaries, explanations, or apologies. Just the formatted text.
+## 3. OUTPUT REQUIREMENTS: Strict Focus on the Current Page
+    -   Deliver ONLY the verbatim transcribed text _from the current page image_, formatted in Markdown according to the rules above.**
+    -   Your output **must begin** with the very first textual element visible on the *current page image*.
+    -   Absolutely NO content (text, headers, partial rows/list items) from the previous page context is allowed in the output. Context is for understanding structure continuity *only*.
+    -   The Text MUST be in the language provided by the text on the image.
+    -   No conversational introductions, summaries, explanations, or apologies. Just the formatted text.
 
-**Final Check:** Before outputting, re-verify against the image. Is the text 100% accurate? Does the Markdown structure faithfully represent the visual layout of *this specific page*?
+# Final Check
+Before outputting, re-verify against the image. Is the text 100% accurate? Does the Markdown structure faithfully represent the visual layout of _this specific page_?
 
 Proceed with OCR and Markdown formatting. **Precision is paramount.**
         """
@@ -170,9 +173,10 @@ Proceed with OCR and Markdown formatting. **Precision is paramount.**
         system_prompt = """
 # Role: Table-to-Text Converter
 
-**Objective:** Convert the provided data table into a series of descriptive sentences in plain text, formatted in Markdown. The goal is to make table information easily accessible and searchable for Large Language Models within a knowledge base.
+# Objective
+Convert the provided data table into a series of descriptive sentences in plain text, formatted in Markdown. The goal is to make table information easily accessible and searchable for Large Language Models within a knowledge base.
 
-**Task:**
+# Task
 1.  Identify the data cells within the table (cells containing values, not just row or column headers).
 2.  For **each** data cell, generate **one single sentence**.
 3.  This sentence must clearly state the value of the cell within the context of its corresponding row header and column header. If an overall context or title for the table is provided, include that as well.
@@ -180,7 +184,7 @@ Proceed with OCR and Markdown formatting. **Precision is paramount.**
 5.  Output **only** the generated sentences in Markdown format. Do not include any preamble, explanation, commentary, or formatting other than the sentences themselves.
 6.  **Strict Adherence:** Do **not** interpret, infer, or add any information not explicitly present in the table. Ensure the generated sentence accurately reflects the cell's value and its corresponding headers.
 
-**Examples:**
+# Examples
 
     **Input**
     ```
@@ -268,13 +272,15 @@ Proceed with OCR and Markdown formatting. **Precision is paramount.**
     - Für das Alter von 16 bis 17 Jahren wird die Vorsorgeleistung für Jugendliche Jugendgesundheitsuntersuchung (J2) ein Mal bei der GOÄ-Ziffer 3514 "Glukose" abgerechnet
     ```
 
+---
+
 **Constraint Checklist:**
-*   Output is Markdown.
-*   One sentence per data cell.
-*   Sentence includes row header, column header, cell value, and table context (if available).
-*   The language MUST be the same as the table.
-*   Output contains ONLY the generated sentences.
-*   Information is strictly from the table, no interpretation.
+-   Output is Markdown.
+-   One sentence per data cell.
+-   Sentence includes row header, column header, cell value, and table context (if available).
+-   The language MUST be the same as the table.
+-   Output contains ONLY the generated sentences.
+-   Information is strictly from the table, no interpretation.
 """
         texts: str = []
         for table in tables:
@@ -309,10 +315,10 @@ The input consists of two parts:
 5.  Adjust the markdown header level (#, ##, ###, etc.) of the headers within the `New Headers` list to correctly reflect their position within the overall hierarchy. A sub-point should typically be one level deeper than its parent header.
 
 # Output Requirements
-*   Output **only** the corrected version of the **`New Headers`** list.
-*   Do **not** include the `Existing Headers` in the output.
-*   Do **not** include any preamble, introductory text, explanations, comments (like <- Corrected level), or labels (like "Corrected Headers:") in the output.
-*   The output should consist *solely* of the corrected markdown header lines originally provided in the `New Headers` input.
+-   Output **only** the corrected version of the **`New Headers`** list.
+-   Do **not** include the `Existing Headers` in the output.
+-   Do **not** include any preamble, introductory text, explanations, comments (like <- Corrected level), or labels (like "Corrected Headers:") in the output.
+-   The output should consist *solely* of the corrected markdown header lines originally provided in the `New Headers` input.
 
 # Example
 
