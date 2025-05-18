@@ -174,20 +174,29 @@ class LLMProviderFactory:
                 logger.warn(f"Manually set openrouter URL to {api_url}")
             logger.debug("Returning openrouter")
             return OpenRouterProvider(image_model=image_model, text_model=text_model, api_url=api_url, api_key=api_key)
+
         elif provider_name.lower() == "ollama":
-            logger.debug("Returning ollama")
-            # assert api_key, "An api key is required to make use of openrouter"
             if not image_model:
                 image_model: str = "mistralai/mistral-small-3.1-24b-instruct:free"
                 logger.warn(f"Manually set ollama text model to {image_model}")
+
             if not text_model:
                 text_model: str = "mistralai/mistral-small-3.1-24b-instruct:free"
                 logger.warn(f"Manually set ollama text model to {text_model}")
+
             if not api_url:
-                api_url = "https://openrouter.ai/api/v1/chat/completions"
+                api_url = "http://localhost:11434/api/generate"
                 logger.warn(f"Manually set openrouter URL to {api_url}")
-            logger.debug("Returning openrouter")
+            else:
+                if not api_url.endswith("/api/generate"):
+                    if api_url.endswith("/"):
+                        api_url += "api/generate"
+                    else:
+                        api_url += "/api/generate"
+
+            logger.debug("Returning ollama")
             return OllamaProvider(image_model=image_model, text_model=text_model, api_url=api_url, api_key=api_key)
+
         else:
             raise ValueError(f"Unsupported LLM provider: {provider_name}")
 

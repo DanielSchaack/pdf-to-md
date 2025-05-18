@@ -1,5 +1,6 @@
 from core.document_processors import Processor, ProcessorFactory
 from core.document_service import DocumentService
+from core.document_schemas import ProcessingStep
 from core.file_service import FileService
 from core.repository_service import RepositoryService, get_db, create_db_and_tables
 from core.llm_service import LlmService
@@ -54,13 +55,6 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        "--output-dir", "-o",
-        type=str,
-        default="./output",
-        help="Directory where output files will be saved. Defaults to './output'."
-    )
-
-    parser.add_argument(
         "--output-type",
         type=str,
         default="md",
@@ -72,7 +66,7 @@ if __name__ == '__main__':
     db_generator = get_db()
     db_session_for_cli = next(db_generator)
     repository_service = RepositoryService(db_session=db_session_for_cli)
-    file_service = FileService(output_dir=args.output_dir)
+    file_service = FileService()
     llm_service = LlmService(provider=args.provider,
                              image_model=args.image_model,
                              text_model=args.text_model,
@@ -82,6 +76,7 @@ if __name__ == '__main__':
                                                              llm_service=llm_service)
 
     document_service = DocumentService(file_service=file_service, repository_service=repository_service)
-    document_service.process_pdf(processor=processor,
+    document_service.process_pdf(steps=[ProcessingStep.COMPLETE],
+                                 processor=processor,
                                  pdf_path=args.pdf_path)
 

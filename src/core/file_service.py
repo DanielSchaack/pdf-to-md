@@ -11,8 +11,23 @@ logger = logging.getLogger(__name__)
 
 
 class FileService:
-    def __init__(self, output_dir: str = "./output"):
-        self.output_dir = output_dir
+    def __init__(self):
+        self.output_dir = "./data"
+
+    def get_file_path(self, filename: str, file_id: int = None, image_format: str = "png") -> str:
+        if filename and file_id and image_format:
+            dir_path = os.path.join(self.output_dir,
+                                    filename,
+                                    str(file_id),
+                                    image_format)
+
+        if filename and not file_id:
+            dir_path = os.path.join(self.output_dir,
+                                    filename,
+                                    image_format)
+
+        logger.debug(f"Dir path is '{dir_path}'")
+        return dir_path
 
     def get_text_column_data(self,
                              image_path: str,
@@ -141,7 +156,7 @@ class FileService:
 
           Returns:
               The filename part of the path, excluding the extension (e.g., "file").
-      """
+        """
         base_name = os.path.basename(file_path)
         file_name_without_extension, _ = os.path.splitext(base_name)
         logger.debug(f"Base filename is {file_name_without_extension}")
@@ -195,10 +210,9 @@ class FileService:
             logger.error(f"Error: PDF file not found at {pdf_path}")
             return []
 
-        image_dir_path = os.path.join(self.output_dir,
-                                      filename,
-                                      str(file_id),
-                                      image_format)
+        image_dir_path = self.get_file_path(filename,
+                                            file_id,
+                                            image_format)
         logger.debug(f"Image dir path is '{image_dir_path}'")
 
         if not os.path.exists(image_dir_path):
@@ -292,36 +306,35 @@ class FileService:
 
         for index, chunk_text in enumerate(chunks):
             chunk_title = titles[index]
-            chunk_path = os.path.join(self.output_dir,
-                                      filename,
-                                      str(file_id),
-                                      filetype)
+            chunk_path = self.get_file_path(filename,
+                                            file_id,
+                                            filetype)
             logger.debug(f"Chunk path is '{chunk_path}'")
 
             chunk_filepath = os.path.join(chunk_path,
-                                          f"{filename}_{chunk_title}_{str(index).zfill(page_num_padding)}.{filetype}")
+                                          f"{filename}_{str(index).zfill(page_num_padding)}_{chunk_title}.{filetype}")
             logger.debug(f"Chunk filepath is '{chunk_filepath}'")
 
-            save(chunk_path, chunk_filepath, chunk_text)
+            save(chunk_path, chunk_filepath, chunk_text.encode("utf-8"))
 
     def save_to_filesystem(self,
                            filename: str,
                            file_id: int,
-                           text: str,
-                           filetype: str):
-        file_dir = os.path.join(self.output_dir,
-                                filename,
-                                str(file_id),
-                                filetype)
+                           content: bytes,
+                           filetype: str) -> str:
+        file_dir = self.get_file_path(filename,
+                                      file_id,
+                                      filetype)
         logger.debug(f"Chunk path is '{file_dir}'")
 
         filepath = os.path.join(file_dir, f"{filename}.{filetype}")
         logger.debug(f"Chunk filepath is '{filepath}'")
 
-        save(file_dir, filepath, text)
+        save(file_dir, filepath, content)
+        return filepath
 
 
-def save(file_dir: str, filepath: str, content: str):
+def save(file_dir: str, filepath: str, content: bytes):
     # Ensure the output directory exists
     if not os.path.exists(file_dir):
         try:
@@ -332,8 +345,8 @@ def save(file_dir: str, filepath: str, content: str):
             raise
 
     try:
-        with open(filepath, "w") as chunk_file:
-            chunk_file.write(content)
+        with open(filepath, "wb") as output_file:
+            output_file.write(content)
             logger.info(f"Successfully written to file '{filepath}'")
 
     except PermissionError as e:

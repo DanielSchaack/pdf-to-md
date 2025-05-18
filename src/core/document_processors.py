@@ -46,7 +46,7 @@ class Processor(ABC):
     def convert_text_to_chunks(self,
                                filename: str,
                                aggregated_text: str,
-                               header_level_cutoff: int = 3) -> Tuple[List[str], List[str]]:
+                               header_level_cutoff: int = 3) -> Tuple[List[str], List[str], List[str]]:
         pass
 
     @abstractmethod
@@ -343,7 +343,7 @@ Focus on maintaining the logical structure implied by the content and numbering,
     def convert_text_to_chunks(self,
                                filename: str,
                                aggregated_text: str,
-                               header_level_cutoff: Optional[int] = None) -> Tuple[List[str], List[str]]:
+                               header_level_cutoff: Optional[int] = None) -> Tuple[List[str], List[str], List[str]]:
 
         return self.markdown_service.convert_markdown_to_chunks(filename=filename,
                                                                 markdown_text=aggregated_text,
@@ -367,27 +367,28 @@ Focus on maintaining the logical structure implied by the content and numbering,
         user_message: str = ""
         if filename:
             user_message += f"The filename is: {filename}\n\n"
+            logger.debug(f"The user_message is updated with a filename to:\n{user_message}")
 
         if (not headers or len(headers) == 0) and (not tables or len(tables) == 0):
-            return "No context and layout of previous page provided. Assume it is the start of the document. Start with header level 1."
+            user_message += "No context and layout of previous page provided. Assume it is the start of the document. Start with header level 1."
+            logger.debug(f"The user_message is updated without headers or tables to:\n{user_message}")
 
-        if headers:
+        if (headers or len(headers) > 0):
             headers_text = "\n".join(headers)
             user_message += f"The layout of the previous page was:\n{headers_text}"
             user_message += "\n\nMake sure you continue the correct header level."
-        else:
-            user_message += "No context and layout of previous page provided.\n"
+            logger.debug(f"The user_message is updated with headers to:\n{user_message}")
 
-        if is_table and tables:
+        if (tables or len(tables) > 0):
             last_table = tables[:-1]
             last_line = last_table[:-1]
             user_message += f"\n\nThe last page ended with a table, of which the last line has the structure of:\n{last_line}"
             user_message += "\nIf the table continues at the top of the current page, you MUST continue the table."
-        else:
-            user_message += "\n\nThe last page did not end on a table."
+            logger.debug(f"The user_message is updated with tables to:\n{user_message}")
 
         if ocr_text:
             user_message += f"\n\nThe extracted OCR text of THIS page is:\n{ocr_text}"
+            logger.debug(f"The user_message is updated with provided ocr text to:\n{user_message}")
 
         return user_message
 

@@ -1,5 +1,6 @@
 from core.file_service import FileService
 from core.document_processors import Processor
+from core.document_schemas import ProcessingStep
 from core.repository_models import ProcessedFile, ExtractedImage, TextChunk
 from core import document_schemas
 from core.repository_service import RepositoryService
@@ -17,33 +18,82 @@ class DocumentService:
         self.file_service = file_service
         self.repository_service = repository_service
 
-    def process_pdf(self, pdf_path: str, processor: Processor):
-        file_to_process, images_to_process = self.convert_to_images(pdf_path=pdf_path,
-                                                                    processor=processor)
+    def process_pdf(self,
+                    steps: List[ProcessingStep],
+                    processor: Processor,
+                    pdf_path: Optional[str] = None,
+                    file_id: Optional[int] = None,
+                    ):
+        file_to_process: ProcessedFile = None
+        if pdf_path and len(pdf_path) > 0:
+            file_to_process = self.repository_service.get_processed_file_by_path(pdf_path)
+        if not file_to_process and file_id and file_id > 0:
+            file_to_process = self.repository_service.get_processed_file(file_id=file_id)
+        if file_to_process:
+            pdf_path = file_to_process.original_pdf_path
 
-        images_to_process: List[str] = self.get_ocr_of_images(processor=processor,
-                                                              file_to_process=file_to_process,
-                                                              images_to_process=images_to_process)
+        run_scan = ProcessingStep.SCAN in steps
+        run_ocr = ProcessingStep.OCR in steps
+        run_aggregate = ProcessingStep.AGGREGATE in steps
+        run_chunk = ProcessingStep.CHUNK in steps
+        run_all = ProcessingStep.COMPLETE in steps
 
-        file_to_process = self.aggregate_texts(processor=processor,
-                                               extracted_images=images_to_process,
-                                               file_to_process=file_to_process)
+        if run_scan or run_all:
+            assert (file_to_process or pdf_path), "No pdf to process have been found!"
+            file_to_process, images_to_process = self.convert_to_images(pdf_path=pdf_path,
+                                                                        file_to_process=file_to_process,
+                                                                        processor=processor)
 
-        self.convert_to_chunks(processor=processor,
-                               file_to_process=file_to_process)
+        if run_ocr or run_all:
+            assert file_to_process, "No pdf to process have been found!"
+            if not images_to_process and file_to_process:
+                images_to_process = self.repository_service.get_extracted_images_for_file(file_to_process.id)
+            assert (images_to_process and len(images_to_process) > 0), "No images to process have been found!"
+            images_to_process: List[str] = self.get_ocr_of_images(processor=processor,
+                                                                  file_to_process=file_to_process,
+                                                                  images_to_process=images_to_process)
 
-    def convert_to_images(self, pdf_path: str, processor: Processor) -> Tuple[ProcessedFile,
-                                                                              List[ExtractedImage]]:
-        filename = self.file_service.get_filename_from_path(pdf_path)
-        processed_file_create = document_schemas.ProcessedFileCreate(original_pdf_path=pdf_path,
-                                                                     filename=filename,
-                                                                     status=document_schemas.ProcessingStatus.PENDING)
+        if run_aggregate or run_all:
+            assert file_to_process, "No pdf to process have been found!"
+            if not images_to_process and file_to_process:
+                images_to_process = self.repository_service.get_extracted_images_for_file(file_to_process.id)
+            assert (images_to_process and len(images_to_process) > 0), "No images to process have been found!"
+            file_to_process = self.aggregate_texts(processor=processor,
+                                                   extracted_images=images_to_process,
+                                                   file_to_process=file_to_process)
 
-        db_file = self.repository_service.create_processed_file(processed_file_create)
-        logger.info(f"Created ProcessedFile record ID: {db_file.id} for {filename}")
+        if run_chunk or run_all:
+            assert file_to_process, "No pdf to process have been found!"
+            self.convert_to_chunks(processor=processor,
+                                   file_to_process=file_to_process)
 
-        image_paths = self.file_service.convert_pdf_to_images(pdf_path=pdf_path,
-                                                              filename=filename,
+    def convert_to_images(self,
+                          processor: Processor,
+                          pdf_path: str,
+                          file_to_process: Optional[ProcessedFile] = None) -> Tuple[ProcessedFile, List[ExtractedImage]]:
+        db_file: ProcessedFile = None
+        if file_to_process:
+            db_file = file_to_process
+        else:
+            filename = self.file_service.get_filename_from_path(pdf_path)
+            processed_file_create = document_schemas.ProcessedFileCreate(original_pdf_path=pdf_path,
+                                                                         filename=filename,
+                                                                         status=document_schemas.ProcessingStatus.PENDING)
+
+            db_file = self.repository_service.create_processed_file(processed_file_create)
+            logger.info(f"Created ProcessedFile record ID: {db_file.id} for {filename}")
+
+        assert db_file, "Wasn't passed or wasn't able to create a file to process"
+
+        self.repository_service.update_processed_file(
+            db_file,
+            document_schemas.ProcessedFileUpdate(status=document_schemas.ProcessingStatus.IMAGE_EXTRACTION_IN_PROGRESS)
+        )
+
+        self.repository_service.delete_extracted_images_for_processed_file(db_file.id)
+
+        image_paths = self.file_service.convert_pdf_to_images(pdf_path=db_file.original_pdf_path,
+                                                              filename=db_file.filename,
                                                               file_id=db_file.id,
                                                               image_format="png",
                                                               dpi=300,
@@ -78,6 +128,9 @@ class DocumentService:
         current_tables: List[List[str]] = []
         current_is_table: bool = False
 
+        self.repository_service.update_processed_file(file_to_process,
+                                                      document_schemas.ProcessedFileUpdate(status=document_schemas.ProcessingStatus.OCR_IN_PROGRESS))
+
         for index, image in enumerate(images_to_process):
             image = self.process_image(file_to_process=file_to_process,
                                        image_to_process=image,
@@ -85,14 +138,14 @@ class DocumentService:
                                        headers=current_headers,
                                        tables=current_tables,
                                        is_table=current_is_table)
+
             current_headers = image.headers
             current_tables = image.tables
             current_is_table = image.is_table
 
-        self.repository_service.update_processed_file(
-            file_to_process,
-            document_schemas.ProcessedFileUpdate(status=document_schemas.ProcessingStatus.OCR_COMPLETED)
-        )
+        self.repository_service.update_processed_file(file_to_process,
+                                                      document_schemas.ProcessedFileUpdate(status=document_schemas.ProcessingStatus.OCR_COMPLETED))
+
         logger.info(f"[{file_to_process.id}] OCR completed for images.")
         return images_to_process
 
@@ -111,7 +164,7 @@ class DocumentService:
                                           image_path=image_to_process.image_path,
                                           headers=headers,
                                           tables=tables,
-                                          ocr_text=image_to_process.tesseract_raw_text,
+                                          ocr_text=combined_tesseract_text,
                                           is_table=is_table)
 
         ocr_response, headers, tables, is_table = processor.refine_headers(ocr_response, headers)
@@ -128,24 +181,34 @@ class DocumentService:
     def aggregate_texts(self, processor: Processor, extracted_images: List[ExtractedImage], file_to_process: ProcessedFile) -> ProcessedFile:
         complete_text = processor.integrate_messages(extracted_images=[image.refined_ocr_text for image in extracted_images])
 
-        self.repository_service.update_processed_file(file_to_process,
-                                                      document_schemas.ProcessedFileUpdate(
-                                                          status=document_schemas.ProcessingStatus.TEXT_AGGREGATED,
-                                                          aggregated_text=complete_text))
+        self.repository_service.update_processed_file(
+            file_to_process,
+            document_schemas.ProcessedFileUpdate(status=document_schemas.ProcessingStatus.TEXT_AGGREGATION_IN_PROGRESS)
+        )
 
         self.file_service.save_to_filesystem(filename=file_to_process.filename,
                                              file_id=file_to_process.id,
                                              filetype=processor.filetype,
-                                             text=complete_text)
+                                             content=complete_text.encode("utf-8"))
+
+        self.repository_service.update_processed_file(file_to_process,
+                                                      document_schemas.ProcessedFileUpdate(
+                                                          status=document_schemas.ProcessingStatus.TEXT_AGGREGATED,
+                                                          aggregated_text=complete_text))
         return file_to_process
 
     def convert_to_chunks(self,
                           processor: Processor,
                           file_to_process: ProcessedFile,
                           header_level_cutoff: Optional[int] = None) -> List[TextChunk]:
-        chunks, chunk_titles = processor.convert_text_to_chunks(filename=file_to_process.filename,
-                                                                aggregated_text=file_to_process.aggregated_text,
-                                                                header_level_cutoff=3)
+        self.repository_service.update_processed_file(
+            file_to_process,
+            document_schemas.ProcessedFileUpdate(status=document_schemas.ProcessingStatus.CHUNKING_IN_PROGRESS)
+        )
+
+        chunks, chunk_titles, clean_chunk_titles = processor.convert_text_to_chunks(filename=file_to_process.filename,
+                                                                                    aggregated_text=file_to_process.aggregated_text,
+                                                                                    header_level_cutoff=3)
         assert len(chunks) == len(chunk_titles), "Each chunk needs its own title"
 
         self.repository_service.update_processed_file(
@@ -160,7 +223,7 @@ class DocumentService:
                                                                      file_id=file_to_process.id,
                                                                      filetype=processor.filetype,
                                                                      chunks=chunks,
-                                                                     titles=chunk_titles)
+                                                                     titles=clean_chunk_titles)
 
         self.repository_service.update_processed_file(
             file_to_process,
@@ -177,11 +240,11 @@ def is_ollama_available(ollama_url: str) -> bool:
         # Ollama's root endpoint usually returns "Ollama is running" with a 200 OK.
         response = requests.get(ollama_url, timeout=5)
         if response.status_code == 200:
-            print(f"Ollama is available at {ollama_url}. Response: {response.text[:100]}")
+            logger.info(f"Ollama is available at {ollama_url}. Response: {response.text[:100]}")
             return True
         else:
-            print(f"Ollama returned status {response.status_code} at {ollama_url}.")
+            logger.warn(f"Ollama returned status {response.status_code} at {ollama_url}.")
             return False
     except Exception as e:
-        print(f"An unexpected error occurred while checking Ollama availability: {e}")
+        logger.error(f"An unexpected error occurred while checking Ollama availability: {e}", exc_info=True)
         return False

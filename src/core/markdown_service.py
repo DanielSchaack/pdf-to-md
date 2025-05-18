@@ -1,4 +1,5 @@
 import io
+import re
 from typing import List, Tuple, Dict, Any
 import logging
 
@@ -103,7 +104,7 @@ class MarkdownService:
     def convert_markdown_to_chunks(self,
                                    filename: str,
                                    markdown_text: str,
-                                   header_level_cutoff: int = 3) -> Tuple[List[str], List[str]]:
+                                   header_level_cutoff: int = 3) -> Tuple[List[str], List[str], List[str]]:
         """
         Convert Markdown text into chunks based on headers and a specified cutoff level.
 
@@ -177,8 +178,13 @@ class MarkdownService:
             logger.debug(f"Chunk text is '{chunk_text}'")
             chunk_texts.append(chunk_text)
 
-        logger.debug(f"Returning chunks '{chunks}'")
-        return chunk_texts, chunk_titles
+        clean_chunk_titles: List[str] = []
+        for title in chunk_titles:
+            clean_title = re.sub(r'\W+', r' ', title).strip()
+            clean_chunk_titles.append(clean_title)
+
+        logger.debug(f"Returning chunks '{chunks}' with titles '{chunk_titles}' cleaned to '{clean_chunk_titles}'")
+        return chunk_texts, chunk_titles, clean_chunk_titles
 
     def remove_lines_starting_with(self, text: str, char: str = "`"):
         filtered_lines = []
