@@ -375,6 +375,9 @@ Focus on maintaining the logical structure implied by the content and numbering,
                                aggregated_text: str,
                                header_level_cutoff: Optional[int] = None) -> Tuple[List[str], List[str], List[str]]:
 
+        if not header_level_cutoff:
+            header_level_cutoff = self.markdown_service.get_header_level_cutoff(aggregated_text=aggregated_text)
+            pass
         return self.markdown_service.convert_markdown_to_chunks(filename=filename,
                                                                 markdown_text=aggregated_text,
                                                                 header_level_cutoff=header_level_cutoff)

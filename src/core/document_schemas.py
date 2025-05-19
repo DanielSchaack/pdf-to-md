@@ -34,6 +34,7 @@ class ProcessedFileCreate(ProcessedFileBase):
 
 
 class ProcessedFileUpdate(BaseModel):
+    original_pdf_path: Optional[str] = None
     filename: Optional[str] = None
     status: Optional[ProcessingStatus] = None
     error_message: Optional[str] = None

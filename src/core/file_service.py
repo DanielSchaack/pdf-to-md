@@ -2,6 +2,7 @@ import cv2
 import pytesseract
 import logging
 import os
+import shutil
 import base64
 import fitz
 from pytesseract import Output
@@ -20,14 +21,24 @@ class FileService:
                                     filename,
                                     str(file_id),
                                     image_format)
+            logger.debug(f"Dir path is '{dir_path}'")
+            return dir_path
 
         if filename and not file_id:
             dir_path = os.path.join(self.output_dir,
                                     filename,
                                     image_format)
+            logger.debug(f"Dir path is '{dir_path}'")
+            return dir_path
 
-        logger.debug(f"Dir path is '{dir_path}'")
-        return dir_path
+        if filename and file_id:
+            dir_path = os.path.join(self.output_dir,
+                                    filename,
+                                    str(file_id))
+            logger.debug(f"Dir path is '{dir_path}'")
+            return dir_path
+
+        return None
 
     def get_text_column_data(self,
                              image_path: str,
@@ -321,17 +332,49 @@ class FileService:
                            filename: str,
                            file_id: int,
                            content: bytes,
-                           filetype: str) -> str:
-        file_dir = self.get_file_path(filename,
-                                      file_id,
-                                      filetype)
-        logger.debug(f"Chunk path is '{file_dir}'")
+                           filetype: str,
+                           filedir: Optional[str] = None) -> str:
+
+        if filedir:
+            file_dir = filedir
+        else:
+            file_dir = self.get_file_path(filename,
+                                          file_id,
+                                          filetype)
+        logger.debug(f"File path is '{file_dir}'")
 
         filepath = os.path.join(file_dir, f"{filename}.{filetype}")
-        logger.debug(f"Chunk filepath is '{filepath}'")
+        logger.debug(f"File filepath is '{filepath}'")
 
         save(file_dir, filepath, content)
         return filepath
+
+    def get_zipped_dir(self, filename: str, file_id: int) -> str:
+        dir_path = self.get_file_path(filename=filename, file_id=file_id, image_format=None)
+        if not os.path.isdir(dir_path):
+            logger.error(f"Directory to zip does not exist: {dir_path}")
+            return None
+
+        path_to_zip = f"{dir_path}.zip"
+        try:
+            path_to_zipped = shutil.make_archive(base_name=path_to_zip, format="zip", root_dir=dir_path)
+            return path_to_zipped
+        except Exception as e:
+            logger.error(f"Failed to zip dir '{dir_path}', exception: {e}", exc_info=True)
+            return None
+
+    def delete_dir(self, filename: str, file_id: int, file_format: Optional[str]) -> bool:
+        dir_path = self.get_file_path(filename=filename, file_id=file_id, image_format=file_format)
+        if not os.path.isdir(dir_path):
+            logger.error(f"Directory to delete does not exist: {dir_path}")
+            return False
+
+        try:
+            shutil.rmtree(dir_path)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to remove dir '{dir_path}', exception: {e}", exc_info=True)
+            return False
 
 
 def save(file_dir: str, filepath: str, content: bytes):

@@ -40,14 +40,12 @@ podman stop pipeline && podman rm pipeline && podman image build -t pipeline-ser
 # TODOs
 ## MUST DO
 - API response cleanup - use Pydantic for all
-- Add default cutoff header level based on maximum level in MD
 - Options for processing inside of ProcessingFile
 - Add a splitter to images with multiple columns, like scientific literature
 
 ## NICE TO HAVEs
 - Frontend
     - Configurable options on UI
-- File cleanup when deleting
 - Options for model calls
     - temperature
     - top k

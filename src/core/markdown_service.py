@@ -101,6 +101,32 @@ class MarkdownService:
         logger.debug(f"Returning is_currently_table: {is_currently_table}")
         return headers, tables, is_currently_table
 
+    def get_header_level_cutoff(self, aggregated_text: str) -> int:
+        header_counts: Dict[int, int] = {}
+        lines = io.StringIO(aggregated_text)
+        for line in lines:
+            if line.startswith("#"):
+                level, _ = self.count_consecutive_chars(line, 0, "#")
+                level_count = header_counts.get(level)
+                if level_count:
+                    level_count += 1
+                    header_counts[level] = level_count
+                else:
+                    header_counts[level] = 1
+            else:
+                continue
+
+        logger.info(f"Header count: {header_counts}")
+
+        cutoff: int = 0
+        cutoff_count: int = 0
+        for header_level, header_count in header_counts.items():
+            if cutoff_count < header_count:
+                cutoff = header_level
+
+        logger.debug(f"Returning cutoff level {cutoff}")
+        return cutoff
+
     def convert_markdown_to_chunks(self,
                                    filename: str,
                                    markdown_text: str,

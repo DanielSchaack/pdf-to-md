@@ -1,9 +1,11 @@
 import logging
 import logging.config
+import os
 from typing import List
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, BackgroundTasks, Query
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import Annotated, Optional
 
@@ -117,6 +119,29 @@ async def get_document_details(
     return db_file_with_details
 
 
+@app.get("/v1/documents/pdfs/{file_id}/content",
+         response_class=FileResponse,
+         summary="Get the details of a document, including extracted images and text chunks")
+async def get_document_contents(
+    file_id: int,
+    background_tasks: BackgroundTasks,
+    repository_service: RepositoryService = Depends(get_api_repository_service),
+    file_service: FileService = Depends(get_api_file_service)
+):
+    db_file = repository_service.get_processed_file(file_id)
+    if not db_file:
+        raise HTTPException(status_code=404, detail=f"ProcessedFile with ID {file_id} not found.")
+
+    zipped_dir = file_service.get_zipped_dir(filename=db_file.filename, file_id=file_id)
+    if not zipped_dir:
+        raise HTTPException(status_code=500, detail=f'Something went wrong during zipping of ProcessedImage with ID {file_id}')
+
+    background_tasks.add_task(os.remove, zipped_dir)
+    return FileResponse(path=zipped_dir,
+                        filename=db_file.filename,
+                        media_type="application/zip")
+
+
 @app.post("/v1/documents/pdfs/",
           response_model=List[ProcessedFileInDB],
           status_code=202,
@@ -134,17 +159,19 @@ async def api_process_pdf(
             raise HTTPException(status_code=400, detail=f"Invalid file type for {pdf_file.filename}. Only PDF files are accepted.")
 
         filename = file_service.get_filename_from_path(pdf_file.filename)
+
+        db_file = repository_service.create_processed_file(ProcessedFileCreate(original_pdf_path="/tmp",
+                                                                               filename=filename))
         filepath = ""
         try:
             content = pdf_file.file.read()
-            filepath = file_service.save_to_filesystem(filename=filename, file_id=None, content=content, filetype="pdf")
+            filepath = file_service.save_to_filesystem(filename=db_file.filename, file_id=db_file.id, content=content, filetype="pdf")
         except Exception:
             raise HTTPException(status_code=500, detail=f'Something went wrong during writing of {pdf_file.filename}')
         finally:
             pdf_file.file.close()
 
-        db_file = repository_service.create_processed_file(ProcessedFileCreate(original_pdf_path=filepath,
-                                                                               filename=filename))
+        db_file = repository_service.update_processed_file(db_file=db_file, update_data=ProcessedFileUpdate(original_pdf_path=filepath))
 
         logger.info(f"File and entry for '{pdf_file.filename}' (ID: {db_file.id}) added to files.")
         files.append(ProcessedFileInDB.model_validate(db_file))
@@ -234,11 +261,20 @@ async def process_pdf_document(
 @app.delete("/v1/documents/pdfs/{file_id}", status_code=204)
 async def delete_pdf_document(
     file_id: int,
-    repository_service: RepositoryService = Depends(get_api_repository_service)
+    repository_service: RepositoryService = Depends(get_api_repository_service),
+    file_service: FileService = Depends(get_api_file_service)
 ):
+    db_file = repository_service.get_processed_file(file_id=file_id)
+    if not db_file:
+        raise HTTPException(status_code=404, detail=f"ProcessedFile with ID {file_id} not found.")
+
+    is_dir_deleted = file_service.delete_dir(filename=db_file.filename, file_id=file_id, file_format=None)
+    if not is_dir_deleted:
+        raise HTTPException(status_code=500, detail=f"Directory of ProcessedFile with ID {file_id} not deleted.")
+
     is_deleted = repository_service.delete_processed_file_by_id(file_id)
     if not is_deleted:
-        raise HTTPException(status_code=500, detail=f"ProcessedFile with ID {file_id} not deleted.")
+        raise HTTPException(status_code=500, detail=f"Database entry for ProcessedFile with ID {file_id} not deleted.")
 
 
 @app.get("/v1/health/ollama",

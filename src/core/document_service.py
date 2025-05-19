@@ -64,6 +64,9 @@ class DocumentService:
 
         if run_chunk or run_all:
             assert file_to_process, "No pdf to process have been found!"
+            is_deleted = self.file_service.delete_dir(filename=file_to_process.filename, file_id=file_to_process.id, file_format=processor.filetype)
+            if not is_deleted:
+                logger.warn(f"Was not able to delete previos chunks of ProcessedFile ID {file_to_process.id}")
             self.convert_to_chunks(processor=processor,
                                    file_to_process=file_to_process)
 
@@ -186,9 +189,11 @@ class DocumentService:
             document_schemas.ProcessedFileUpdate(status=document_schemas.ProcessingStatus.TEXT_AGGREGATION_IN_PROGRESS)
         )
 
+        filedir = self.file_service.get_file_path(filename=file_to_process.filename, file_id=file_to_process.id, image_format=None)
         self.file_service.save_to_filesystem(filename=file_to_process.filename,
                                              file_id=file_to_process.id,
                                              filetype=processor.filetype,
+                                             filedir=filedir,
                                              content=complete_text.encode("utf-8"))
 
         self.repository_service.update_processed_file(file_to_process,
@@ -208,7 +213,7 @@ class DocumentService:
 
         chunks, chunk_titles, clean_chunk_titles = processor.convert_text_to_chunks(filename=file_to_process.filename,
                                                                                     aggregated_text=file_to_process.aggregated_text,
-                                                                                    header_level_cutoff=3)
+                                                                                    header_level_cutoff=None)
         assert len(chunks) == len(chunk_titles), "Each chunk needs its own title"
 
         self.repository_service.update_processed_file(
