@@ -86,8 +86,8 @@ Your primary objective is to produce a Markdown output that is a **100% accurate
 
 You will be provided with:
 1.  An image of the **current document page.**
-2.  (Optional) Context about the previous page (headers, ongoing tables/lists). This is **strictly for structural continuity guidance** (e.g., heading levels, table continuation) and **must NOT be included in your output.**
-3.  (Optional) Pre-extracted OCR text corresponding to **THIS current page** (use as a starting point if provided, but verify against the image).
+3.  Pre-extracted OCR text corresponding to **THIS current page** (use as a starting point if provided, but verify against the image).
+2.  (Optional) Context about the previous page (headers, ongoing tables/lists). This is **strictly for structural continuity guidance** (e.g., continuing header levels, table continuation) and **must NOT be included in your output.**
 
 # Priorities & Execution
 
@@ -108,7 +108,7 @@ You will be provided with:
     -   Use `# H1`, `## H2`, etc., reflecting the visual hierarchy _on the current page_.
     -   Leverage previous page context (if provided) ONLY to determine the correct _starting_ level for headings on the current page. (e.g., if the previous page ended mid-section under an `## H2`, the first heading on the current page might be `## H2` or `### H3`). **Do not repeat previous page headings.**
     -   Heading text must be **verbatim** from the image.
-    -   Assume the initial list of indented paragraphs with multiple paragraphs per list items annotated with a number (i.e. `1.` or `1)`) without clear headlines to be new headers with just there number as headlines (i.e. `## 1.`). Sublists MUST remain as lists WITHOUT new headers.
+    -   Assume the initial list of indented paragraphs with multiple paragraphs per list items annotated with a number (i.e. `1.` or `1)` or `B.1`) with headlines (like bold text below) or without headlines to be new headers with their number as headlines (i.e. `# 1.` or `## B.1 Subtopic`). Sublists MUST remain as lists WITHOUT new headers.
 -   Paragraphs:
     -   Separate distinct paragraphs with a blank line.
     -   Replicate original numbering or lettering if present.
@@ -314,17 +314,11 @@ The input consists of two parts:
 4.  Identify headers within `New Headers` that appear to be sub-points or continuations of a preceding header (either the last `Existing Header` or a header within `New Headers` itself) based on their numbering (e.g., "A.3." following "A.2.") or clear thematic similarity indicated by consistent phrasing or prefixes (e.g., "Section A.*").
 5.  Adjust the markdown header level (#, ##, ###, etc.) of the headers within the `New Headers` list to correctly reflect their position within the overall hierarchy. A sub-point should typically be one level deeper than its parent header.
 
-# Output Requirements
--   Output **only** the corrected version of the **`New Headers`** list.
--   Do **not** include the `Existing Headers` in the output.
--   Do **not** include any preamble, introductory text, explanations, comments (like <- Corrected level), or labels (like "Corrected Headers:") in the output.
--   The output should consist *solely* of the corrected markdown header lines originally provided in the `New Headers` input.
-
 # Example
 
-**Input:**
+Input:
 
-**`Existing Headers`:**
+Existing Headers:
 ```markdown
 # Main Topic
 ## Section A
@@ -332,43 +326,76 @@ The input consists of two parts:
 ### Section A.2. Sub-point Two
 ```
 
-**`New Headers`:**
+New Headers:
 ```markdown
-## Section A.3. Sub-point Three <- Incorrect level
-## Section A.4. Sub-point Four <- Incorrect level
+## Section A.3. Sub-point Three <- Incorrect level, shares same subsection as A.1./A.2.
+## Section A.4. Sub-point Four <- Incorrect level, shares same subsection as A.1./A.2.
+## Section B <- Correct level, equal to A
+### Section B.1. Another Sub-point <- Correct level, equal to A.1./A.2.
+```
+
+Correct Output:
+```markdown
+### Section A.3. Sub-point Three <- Corrected level equal to A.1.
+### Section A.4. Sub-point Four <- Corrected level equal to A.1.
 ## Section B
 ### Section B.1. Another Sub-point
 ```
 
-**Correct Output:**
+Input:
+
+Existing Headers:
 ```markdown
-### Section A.3. Sub-point Three <- Corrected level
-### Section A.4. Sub-point Four <- Corrected level
-## Section B
-### Section B.1. Another Sub-point
+## Topic A
+### Subtopic A
+### Subtopic B
+### Subtopic C
+#### C.1 Specific title 1
+#### C.2 Specific title 2
+#### C.3 Specific title 3
 ```
+
+New Headers::
+```markdown
+## C.4 Specific title 4 <- Incorrect level, shares same subsection as C.1/C.2/C.3
+## C.5 Specific title 5 <- Incorrect level, shares same subsection as C.1/C.2/C.3
+## C.6 Specific title 6 <- Incorrect level, shares same subsection as C.1/C.2/C.3
+## C.7 Specific title 7 <- Incorrect level, shares same subsection as C.1/C.2/C.3
+# Subtopic D <- Incorrect level, shares same subtopic as A/B/C
+```
+
+Correct Output:
+```markdown
+#### C.4 Specific title 4 <- Corrected level equal to C.1/C.2/C.3
+#### C.5 Specific title 5 <- Corrected level equal to C.1/C.2/C.3
+#### C.6 Specific title 6 <- Corrected level equal to C.1/C.2/C.3
+#### C.7 Specific title 7 <- Corrected level equal to C.1/C.2/C.3
+### Subtopic D <- Corrected level equal to A/B/C
+```
+
+# Output Requirements
+-   Output **only** the corrected version of the **`New Headers`** list.
+-   Do **not** include the `Existing Headers` in the output.
+-   Do **not** include any preamble, introductory text, explanations, comments (like <- Corrected level), or labels (like "Corrected Headers:") in the output.
+-   The output should consist *solely* of the corrected markdown header lines originally provided in the `New Headers` input.
 
 # Focus
-Focus on maintaining the logical structure implied by the content and numbering, determining the correct levels for the `New Headers` based on the `Existing Headers` context and internal relationships within `New Headers`.
+Focus on maintaining the logical structure implied by the content and numbering, determining the correct levels for the `New Headers` based on the `Existing Headers` levels.
         """
         old_headers_listed = "\n".join(headers)
         new_headers_listed = "\n".join(new_headers)
-        user_message = f"Existing Headers:\n{old_headers_listed}\n\nNew Headers:\n{new_headers_listed}"
+        user_message = f"Existing Headers:\n```markdown\n{old_headers_listed}```\n\nNew Headers:\n```markdown\n{new_headers_listed}```"
 
         new_new_headers = self.llm_service.call_text_llm_provider(user_message=user_message, system_prompt=system_prompt)
         new_new_headers = self.markdown_service.remove_lines_starting_with(new_new_headers, "`")
-        logger.debug(f"Existing headers: {old_headers_listed}, old new headers: {new_headers_listed}, new new headers: {new_new_headers}")
+        logger.debug(f"Existing headers:\n{old_headers_listed}, old new headers:\n{new_headers_listed}, new new headers:\n{new_new_headers}")
 
         n_headers = []
         lines = io.StringIO(new_new_headers)
         for line in lines:
             n_headers.append(line.strip())
 
-        if len(new_headers) == len(n_headers):
-            logger.debug(f"Returning new headers corrected: {n_headers}")
-            return n_headers
-
-        return new_headers
+        return n_headers
 
     def convert_text_to_chunks(self,
                                filename: str,
@@ -402,6 +429,10 @@ Focus on maintaining the logical structure implied by the content and numbering,
             user_message += f"The filename is: {filename}\n\n"
             logger.debug(f"The user_message is updated with a filename to:\n{user_message}")
 
+        if ocr_text:
+            user_message += f"\n\nThe extracted OCR text of THIS page is:\n{ocr_text}"
+            logger.debug(f"The user_message is updated with provided ocr text to:\n{user_message}")
+
         if (not headers or len(headers) == 0) and (not tables or len(tables) == 0):
             user_message += "No context and layout of previous page provided. Assume it is the start of the document. Start with header level 1."
             logger.debug(f"The user_message is updated without headers or tables to:\n{user_message}")
@@ -418,10 +449,6 @@ Focus on maintaining the logical structure implied by the content and numbering,
             user_message += f"\n\nThe last page ended with a table, of which the last line has the structure of:\n{last_line}"
             user_message += "\nIf the table continues at the top of the current page, you MUST continue the table."
             logger.debug(f"The user_message is updated with tables to:\n{user_message}")
-
-        if ocr_text:
-            user_message += f"\n\nThe extracted OCR text of THIS page is:\n{ocr_text}"
-            logger.debug(f"The user_message is updated with provided ocr text to:\n{user_message}")
 
         return user_message
 

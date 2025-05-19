@@ -41,7 +41,11 @@ podman stop pipeline && podman rm pipeline && podman image build -t pipeline-ser
 ## MUST DO
 - API response cleanup - use Pydantic for all
 - Options for processing inside of ProcessingFile
+    - include OR exclude page numbers
+    - Blacklist words to skip images
+
 - Add a splitter to images with multiple columns, like scientific literature
+- Move table translation and header updates to aggregation step - to separate image and text model loading
 
 ## NICE TO HAVEs
 - Frontend
@@ -53,4 +57,5 @@ podman stop pipeline && podman rm pipeline && podman image build -t pipeline-ser
     - num_predict
     - num_gpu (ollama)
 - Support for reasoning?
+- Resume failed/unfinished images
 

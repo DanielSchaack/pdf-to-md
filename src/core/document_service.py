@@ -49,6 +49,7 @@ class DocumentService:
             if not images_to_process and file_to_process:
                 images_to_process = self.repository_service.get_extracted_images_for_file(file_to_process.id)
             assert (images_to_process and len(images_to_process) > 0), "No images to process have been found!"
+
             images_to_process: List[str] = self.get_ocr_of_images(processor=processor,
                                                                   file_to_process=file_to_process,
                                                                   images_to_process=images_to_process)
@@ -64,9 +65,11 @@ class DocumentService:
 
         if run_chunk or run_all:
             assert file_to_process, "No pdf to process have been found!"
+
             is_deleted = self.file_service.delete_dir(filename=file_to_process.filename, file_id=file_to_process.id, file_format=processor.filetype)
             if not is_deleted:
                 logger.warn(f"Was not able to delete previos chunks of ProcessedFile ID {file_to_process.id}")
+
             self.convert_to_chunks(processor=processor,
                                    file_to_process=file_to_process)
 

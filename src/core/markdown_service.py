@@ -123,6 +123,7 @@ class MarkdownService:
         for header_level, header_count in header_counts.items():
             if cutoff_count < header_count:
                 cutoff = header_level
+                cutoff_count = header_count
 
         logger.debug(f"Returning cutoff level {cutoff}")
         return cutoff
