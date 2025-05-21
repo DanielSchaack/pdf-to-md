@@ -86,65 +86,84 @@ Your primary objective is to produce a Markdown output that is a **100% accurate
 
 You will be provided with:
 1.  An image of the **current document page.**
-3.  Pre-extracted OCR text corresponding to **THIS current page** (use as a starting point if provided, but verify against the image).
-2.  (Optional) Context about the previous page (headers, ongoing tables/lists). This is **strictly for structural continuity guidance** (e.g., continuing header levels, table continuation) and **must NOT be included in your output.**
+2.  Pre-extracted OCR text corresponding to **THIS current page** (use as a starting point if provided, but verify against the image).
+3.  (Optional) Context about the previous page (headers, ongoing tables/lists). This is **strictly for structural continuity guidance** (e.g., continuing header levels, table continuation) and **must NOT be included in your output.**
 
 # Priorities & Execution
 
-## 1. FOUNDATION: Uncompromising Textual Accuracy (Verbatim Extraction)
--   This is non-negotiable. Extract ALL text with **absolute character-for-character precision.** Legal German demands exactness.
--   Meticulous Detail - Transcribe exactly:
-    -   German characters: ä, ö, ü, Ä, Ö, Ü, ß.
-    -   All punctuation, capitalization, numbers (policy numbers, amounts, dates, §, Abs., Nr.).
-    -   Special symbols (€, ©, etc.).
--   No Alterations:
-    -   **DO NOT** omit, add, paraphrase, summarize, or "correct" *anything*.
-    -   Preserve original wording, spelling (even apparent typos), and grammar verbatim as seen in the image.
--   Illegibility: If a portion of text is genuinely unreadable, use `[unleserlich]`. If unclear for a specific reason, use `[unklar: Grund]` (e.g., `[unklar: verschmiert]`). **Do not guess.**
+## FOUNDATION: Uncompromising Textual Accuracy (Verbatim Extraction)
+This is non-negotiable. Extract ALL text with **absolute character-for-character precision.** Legal German demands exactness.
 
-## 2. STRUCTURE: Faithful Markdown Representation (Reflecting the Original image)
--   Goal: Use Markdown to mirror the document's visual structure _as applied to the verbatim extracted text_.
--   Headings:
-    -   Use `# H1`, `## H2`, etc., reflecting the visual hierarchy _on the current page_.
-    -   Leverage previous page context (if provided) ONLY to determine the correct _starting_ level for headings on the current page. (e.g., if the previous page ended mid-section under an `## H2`, the first heading on the current page might be `## H2` or `### H3`). **Do not repeat previous page headings.**
-    -   Heading text must be **verbatim** from the image.
-    -   Assume the initial list of indented paragraphs with multiple paragraphs per list items annotated with a number (i.e. `1.` or `1)` or `B.1`) with headlines (like bold text below) or without headlines to be new headers with their number as headlines (i.e. `# 1.` or `## B.1 Subtopic`). Sublists MUST remain as lists WITHOUT new headers.
--   Paragraphs:
-    -   Separate distinct paragraphs with a blank line.
-    -   Replicate original numbering or lettering if present.
--   Lists:
-    -   Use `*` or `-` for unordered lists (visually bulleted).
-    -   Use the **exact original numbering/lettering** (e.g., `1.`, `a)`, `(i)`) for ordered lists.
-    -   Preserve indentation accurately for nested lists.
-    -   If a list continues from the previous page (based on context), start with the correct next item number/letter.
--   Tables:
-    -   Use Markdown table syntax where feasible and clear.
-    -   All cell content must be **verbatim**.
-    -   ```markdown
-      | Exakter Header 1 | Exakter Header 2 |
-      |---|---|
-      | Exakter Text 1.1 | €123,45 |
-      | Zeile 2 Text | § 5 Abs. 3 Nr. 1 |
-      ```
-    -   If a table continues from the previous page (based on context), replicate the header ONLY if it's repeated on the current page image. Continue with the rows visible on the current page.**
--   Inline Formatting: Apply **only** if clearly visible in the image:
-    -   Bold: `**text**`
-    -   Italic: `_text_`
-    -   Underline: `<u>text</u>` (Use HTML tag for broader compatibility)
-    -   Strikethrough: `~~text~~`
+The transcription process demands meticulous attention to detail, requiring an exact replication of the original text. This includes faithfully transcribing all characters, specifically the umlauts (ä, ö, ü) and the Eszett (ß), as well as their uppercase counterparts. Furthermore, it’s crucial to capture every instance of punctuation, ensuring consistent capitalization, and accurately recording numbers, including policy numbers, monetary amounts, dates, legal sections (denoted by § and Abs.), and identification numbers (Nr.). Finally, the transcription must incorporate all special symbols such as currency signs (€) and copyright symbols (©).
 
-## 3. OUTPUT REQUIREMENTS: Strict Focus on the Current Page
-    -   Deliver ONLY the verbatim transcribed text _from the current page image_, formatted in Markdown according to the rules above.**
-    -   Your output **must begin** with the very first textual element visible on the *current page image*.
-    -   Absolutely NO content (text, headers, partial rows/list items) from the previous page context is allowed in the output. Context is for understanding structure continuity *only*.
-    -   The Text MUST be in the language provided by the text on the image.
-    -   No conversational introductions, summaries, explanations, or apologies. Just the formatted text.
+Absolutely no alterations are permitted – You MUST NOT omit, add, paraphrase, summarize, or attempt to “correct” any portion of the text.
 
-# Final Check
-Before outputting, re-verify against the image. Is the text 100% accurate? Does the Markdown structure faithfully represent the visual layout of _this specific page_?
+## STRUCTURE: Faithful Markdown Representation (Reflecting the Original image)
+Use Markdown to mirror the document's visual structure as applied to the verbatim extracted text.
 
-Proceed with OCR and Markdown formatting. **Precision is paramount.**
-        """
+### Headings:
+Multiline headers with bold text and the same font size are possible. You MUST treat these as a singular header. Example: `**General Topic**\n**Part of Header**\n**Deeper Description of the header**` MUST be `# General Topic, Part of Header, Deeper Description of the header`
+
+Next to being above paragraphs, headers can also be to the side of the paragraphs. The headers must be above the paragraphs based on the same height.
+
+Headers can also be leadings signs like `I`, `1.`, `A)` without any additional text. This is especially important for pages that numerically lists paragraphs. Treat these as headers WITHOUT additional text and with a sublevelof the current one.
+Example:
+```
+**The Current Main Topic**
+1)      Paragraph start right here[...]\n\n and ends way later.
+2)      Second paragraph start right here[...]\n\n and ends way later.
+```
+Should be:
+```markdown
+# The Current Main Topic
+## 1)
+Paragraph start right here[...]\n\n and ends way later.
+## 2)
+Second paragraph start right here[...]\n\n and ends way later.
+```
+
+Headers within paragraphs MUST be treated as sublevel of the current header level, for example you're in header `### A3 Third Subtopic` and a bolded line appears of `**f) The Reasons Why**`, it MUST be of header level 4 - `#### f) The Reasons Why`
+
+The guidelines to header-levels are as follows:
+1. Bold text in their own paragraph _without_ any leading signs like roman numerals, letters or number MUST ALWAYS be of header level 1, i.e. `**General Topic**\n**Part of Header**` MUST be `# General Topic, Part of Header`
+2. Bold text in their own paragraph _with_ exactly one leading sign like `III` or `B.` MUST ALWAYS be of header level 2, i.e. `**II. Second Subtopic**` MUST be `## II. Second Subtopic`
+3. Bold text in their own paragraph _with_ exactly two leading signs like `A.3` or `I.2` AND also `C3` MUST ALWAYS be of header level 3, i.e. `**C.1 First Subsubtopic**` MUST be `### C.1 First Subsubtopic`.
+
+You MUST follow the guidelines even if subtopics are the first headlines that appear!
+
+### Lists:
+Use `-` for unordered lists (visually bulleted). Use the **exact original numbering/lettering** (e.g., `1.`, `a)`, `(i)`) for ordered lists.
+
+Preserve indentation accurately for nested lists.
+
+### Paragraphs:
+Separate distinct paragraphs with a blank line. When paragraphs are given as a list, replicate the original numbering or lettering.
+
+### Tables:
+Use Markdown table syntax where feasible and clear. All cell content must be **verbatim**. Cells can also be left empty if no text is provided inside a cell.
+
+If a table continues from the previous page, continue with the same structure rows visible on the current page without a header. 
+
+Example for a table:
+```markdown
+| Exakter Header 1 | Exakter Header 2 | Exakter Header 3 |
+|---|---|---|
+| Exakter Text 1.1 | €123,45 | |
+| Zeile 2 Text | § 5 Abs. 3 Nr. 1 | The above cell is empty |
+```
+
+### Inline Formatting:
+Apply **only** if clearly visible in the image:
+-   Bold: `**text**`
+-   Italic: `_text_`
+-   Strikethrough: `~~text~~`
+
+## OUTPUT REQUIREMENTS:
+-   Deliver ONLY the verbatim transcribed text _from the current page image_, formatted in Markdown according to the rules above.**
+-   Absolutely NO content (text, headers, partial rows/list items) from the previous page context is allowed in the output. Context is for understanding structure continuity *only*.
+-   The Text MUST be in the language provided by the text on the image.
+-   No conversational introductions, summaries, explanations, or apologies. Just the formatted text.
+"""
         user_message = self.create_context_user_message(filename=filename,
                                                         headers=headers,
                                                         tables=tables,
@@ -160,8 +179,8 @@ Proceed with OCR and Markdown formatting. **Precision is paramount.**
                        headers: List[str]) -> Tuple[str, List[str], List[List[str]], bool]:
         new_headers, tables, is_table = self.markdown_service.get_markdown_headers_and_tables(input_text)
         if len(headers) > 0:
-            headers = self.correct_header_levels(headers, new_headers)
-            input_text = self.markdown_service.replace_headers(input_text, headers)
+            headers = new_headers  # self.correct_header_levels(headers, new_headers)
+            # input_text = self.markdown_service.replace_headers(input_text, headers)
         else:
             headers = new_headers
 
@@ -186,91 +205,82 @@ Convert the provided data table into a series of descriptive sentences in plain 
 
 # Examples
 
-    **Input**
-    ```
-    Table:
-    | Tariff | ET10 | ET15 | ET20 | ET25 | ET30 | ET35 | ET40 | ET45 | ET50 |
-    |---|---|---|---|---|---|---|---|---|---|
-    | Reimbursement Rate in % | 90 | 85 | 80 | 75 | 70 | 65 | 60 | 55 | 50 |
-    ```
+**Input**
+```markdown
+| Tariff | ET10 | ET15 | ET20 | ET25 | ET30 | ET35 | ET40 | ET45 | ET50 |
+|---|---|---|---|---|---|---|---|---|---|
+| Reimbursement Rate in % | 90 | 85 | 80 | 75 | 70 | 65 | 60 | 55 | 50 |
+```
 
-    **Expected Output:**
-    ```markdown
-    - For the Tariff ET10, the Reimbursement Rate in % for Visual Aids is 90%.
-    - For the Tariff ET15, the Reimbursement Rate in % for Visual Aids is 85%.
-    - For the Tariff ET20, the Reimbursement Rate in % for Visual Aids is 80%.
-    [...]
-    ```
-
----
-
-    **Input**
-    ```
-    Table:
-    ```
-    | Tarif | Erwachsene ab Alter 21 | Kinder/Jugendliche bis Alter 20 |
-    |-------|------------------------|--------------------------------|
-    | GUP0  | 0 EUR                  | 0 EUR                          |
-    | GUP500| 500 EUR                | 250 EUR                        |
-    | GUP900| 900 EUR                | 450 EUR                        |
-    | GUP1.8| 1.800 EUR              | 900 EUR                        |
-    ```
-
-    **Expected Output:**
-    ```markdown
-    - Der Tarif GUP0 für Erwachsene ab Alter 21 beträgt 0 Euro.
-    - Der Tarif GUP0 für Kinder/Jugendliche bis Alter 20 beträgt 0 Euro.
-    - Der Tarif GUP500 für Erwachsene ab Alter 21 beträgt 500 Euro.
-    - Der Tarif GUP500 für Kinder/Jugendliche bis Alter 20 beträgt 250 Euro.
-    - Der Tarif GUP900 für Erwachsene ab Alter 21 beträgt 900 Euro.
-    - Der Tarif GUP900 für Kinder/Jugendliche bis Alter 20 beträgt 450 Euro.
-    - Der Tarif GUP1.8 für Erwachsene ab Alter 21 beträgt 1.800 Euro.
-    - Der Tarif GUP1.8 für Kinder/Jugendliche bis Alter 20 beträgt 900 Euro.
-    ```
+**Expected Output:**
+```markdown
+- For the Tariff ET10, the Reimbursement Rate in % for Visual Aids is 90%.
+- For the Tariff ET15, the Reimbursement Rate in % for Visual Aids is 85%.
+- For the Tariff ET20, the Reimbursement Rate in % for Visual Aids is 80%.
+[...]
+```
 
 ---
 
-    **Input**
-    ```
-    Table:
-    ```markdown
-    | Wann und für wen? | Was? | Wie oft? | Abrechnung nach GOÄ |
-    |---|---|---|---|
-    | | Vorsorgeuntersuchungen nach Alter¹ | | |
-    | 0 – 10 J. | Vorsorgeleistungen für | Jede U-Untersuchung ein Mal | Die Untersuchungen U1, U2, U3, U4, U5, U6, U7, U7a, U8, U9, U10 und U11 werden jeweils nach GOÄ 25 oder 26 abgerechnet. |
-    | w / m² | Kinder | | |
-    | | zur Früherkennung von | | |
-    | | Krankheiten | | |
-    | | | | GOÄ Leistungsbeschreibung |
-    | | | | 25 Neugeborenen-Erstuntersuchung |
-    | | | | 26 Früherkennungsuntersuchung beim Kind |
-    | | | | 3691.H1 Zu U1 – Screening auf Sichelzellkrankheit |
-    | | | | 4872 Zu U1 – Screening auf Spinale Muskelatrophie |
-    [...]
-    | 13 – 14 J. | Vorsorgeleistungen für | ein Mal | GOÄ |
-    | w / m | Jugendliche | | 32 Untersuchung nach Jugendarbeitsschutzgesetz |
-    | | Jugendgesundheitsuntersuchung (J1) | | 250 Blutabnahme |
-    | 16 – 17 J. | Vorsorgeleistungen für | ein Mal | GOÄ Leistungsbeschreibung |
-    | w / m | Jugendliche | | 32 Untersuchung nach Jugendarbeitsschutzgesetz |
-    | | Jugendgesundheitsuntersuchung (J2) | | 250 Blutabnahme |
-    | | | | 3514 Glukose |
-    ```
+**Input**
+```markdown
+| Tarif | Erwachsene ab Alter 21 | Kinder/Jugendliche bis Alter 20 |
+|-------|------------------------|--------------------------------|
+| GUP0  | 0 EUR                  | 0 EUR                          |
+| GUP500| 500 EUR                | 250 EUR                        |
+| GUP900| 900 EUR                | 450 EUR                        |
+| GUP1.8| 1.800 EUR              | 900 EUR                        |
+```
 
-    ```
+**Expected Output:**
+```markdown
+- Der Tarif GUP0 für Erwachsene ab Alter 21 beträgt 0 Euro.
+- Der Tarif GUP0 für Kinder/Jugendliche bis Alter 20 beträgt 0 Euro.
+- Der Tarif GUP500 für Erwachsene ab Alter 21 beträgt 500 Euro.
+- Der Tarif GUP500 für Kinder/Jugendliche bis Alter 20 beträgt 250 Euro.
+- Der Tarif GUP900 für Erwachsene ab Alter 21 beträgt 900 Euro.
+- Der Tarif GUP900 für Kinder/Jugendliche bis Alter 20 beträgt 450 Euro.
+- Der Tarif GUP1.8 für Erwachsene ab Alter 21 beträgt 1.800 Euro.
+- Der Tarif GUP1.8 für Kinder/Jugendliche bis Alter 20 beträgt 900 Euro.
+```
 
-    **Expected Output:**
-    ```markdown
-    - Für das Alter von 0 bis 10 Jahren wird die Vorsorgeleistung für Kinder zur Früherkennung von Krankheiten jede U-Untersuchung ein Mal nach GOÄ-Ziffer 25 Neugeborenen-Erstuntersuchung abgerechnet.
-    - Für das Alter von 0 bis 10 Jahren wird die Vorsorgeleistung für Kinder zur Früherkennung von Krankheiten jede U-Untersuchung ein Mal nach GOÄ-Ziffer 26 Früherkennungsuntersuchung beim Kind abgerechnet.
-    - Für das Alter von 0 bis 10 Jahren wird die Vorsorgeleistung für Kinder zur Früherkennung von Krankheiten jede U-Untersuchung ein Mal nach GOÄ-Ziffer 3691.H1 Screening auf Sichelzellenkrankheit abgerechnet.
-    - Für das Alter von 0 bis 10 Jahren wird die Vorsorgeleistung für Kinder zur Früherkennung von Krankheiten jede U-Untersuchung ein Mal nach GOÄ-Ziffer 4872 Screening auf Spinale Muskelerkrankung abgerechnet.
-    [...]
-    - Für das Alter von 13 bis 14 Jahren wird die Vorsorgeleistung für Jugendliche Jugendgesundheitsuntersuchung (J1) ein Mal bei der GOÄ-Ziffer 32 "Untersuchung nach Jugendarbeitsschutzgesetz" abgerechnet
-    - Für das Alter von 13 bis 14 Jahren wird die Vorsorgeleistung für Jugendliche Jugendgesundheitsuntersuchung (J1) ein Mal bei der GOÄ-Ziffer 250 "Blutabnahme" abgerechnet
-    - Für das Alter von 16 bis 17 Jahren wird die Vorsorgeleistung für Jugendliche Jugendgesundheitsuntersuchung (J2) ein Mal bei der GOÄ-Ziffer 32 "Untersuchung nach Jugendarbeitsschutzgesetz" abgerechnet
-    - Für das Alter von 16 bis 17 Jahren wird die Vorsorgeleistung für Jugendliche Jugendgesundheitsuntersuchung (J2) ein Mal bei der GOÄ-Ziffer 250 "Blutabnahme" abgerechnet
-    - Für das Alter von 16 bis 17 Jahren wird die Vorsorgeleistung für Jugendliche Jugendgesundheitsuntersuchung (J2) ein Mal bei der GOÄ-Ziffer 3514 "Glukose" abgerechnet
-    ```
+---
+
+**Input**
+```markdown
+| Wann und für wen? | Was? | Wie oft? | Abrechnung nach GOÄ |
+|---|---|---|---|
+| | Vorsorgeuntersuchungen nach Alter¹ | | |
+| 0 – 10 J. | Vorsorgeleistungen für | Jede U-Untersuchung ein Mal | Die Untersuchungen U1, U2, U3, U4, U5, U6, U7, U7a, U8, U9, U10 und U11 werden jeweils nach GOÄ 25 oder 26 abgerechnet. |
+| w / m² | Kinder | | |
+| | zur Früherkennung von | | |
+| | Krankheiten | | |
+| | | | GOÄ Leistungsbeschreibung |
+| | | | 25 Neugeborenen-Erstuntersuchung |
+| | | | 26 Früherkennungsuntersuchung beim Kind |
+| | | | 3691.H1 Zu U1 – Screening auf Sichelzellkrankheit |
+| | | | 4872 Zu U1 – Screening auf Spinale Muskelatrophie |
+| 13 – 14 J. | Vorsorgeleistungen für | ein Mal | GOÄ |
+| w / m | Jugendliche | | 32 Untersuchung nach Jugendarbeitsschutzgesetz |
+| | Jugendgesundheitsuntersuchung (J1) | | 250 Blutabnahme |
+| 16 – 17 J. | Vorsorgeleistungen für | ein Mal | GOÄ Leistungsbeschreibung |
+| w / m | Jugendliche | | 32 Untersuchung nach Jugendarbeitsschutzgesetz |
+| | Jugendgesundheitsuntersuchung (J2) | | 250 Blutabnahme |
+| | | | 3514 Glukose |
+```
+
+**Expected Output:**
+```markdown
+- Für das Alter von 0 bis 10 Jahren wird die Vorsorgeleistung für Kinder zur Früherkennung von Krankheiten jede U-Untersuchung ein Mal nach GOÄ-Ziffer 25 Neugeborenen-Erstuntersuchung abgerechnet.
+- Für das Alter von 0 bis 10 Jahren wird die Vorsorgeleistung für Kinder zur Früherkennung von Krankheiten jede U-Untersuchung ein Mal nach GOÄ-Ziffer 26 Früherkennungsuntersuchung beim Kind abgerechnet.
+- Für das Alter von 0 bis 10 Jahren wird die Vorsorgeleistung für Kinder zur Früherkennung von Krankheiten jede U-Untersuchung ein Mal nach GOÄ-Ziffer 3691.H1 Screening auf Sichelzellenkrankheit abgerechnet.
+- Für das Alter von 0 bis 10 Jahren wird die Vorsorgeleistung für Kinder zur Früherkennung von Krankheiten jede U-Untersuchung ein Mal nach GOÄ-Ziffer 4872 Screening auf Spinale Muskelerkrankung abgerechnet.
+- Für das Alter von 13 bis 14 Jahren wird die Vorsorgeleistung für Jugendliche Jugendgesundheitsuntersuchung (J1) ein Mal bei der GOÄ-Ziffer 32 "Untersuchung nach Jugendarbeitsschutzgesetz" abgerechnet
+- Für das Alter von 13 bis 14 Jahren wird die Vorsorgeleistung für Jugendliche Jugendgesundheitsuntersuchung (J1) ein Mal bei der GOÄ-Ziffer 250 "Blutabnahme" abgerechnet
+- Für das Alter von 16 bis 17 Jahren wird die Vorsorgeleistung für Jugendliche Jugendgesundheitsuntersuchung (J2) ein Mal bei der GOÄ-Ziffer 32 "Untersuchung nach Jugendarbeitsschutzgesetz" abgerechnet
+- Für das Alter von 16 bis 17 Jahren wird die Vorsorgeleistung für Jugendliche Jugendgesundheitsuntersuchung (J2) ein Mal bei der GOÄ-Ziffer 250 "Blutabnahme" abgerechnet
+- Für das Alter von 16 bis 17 Jahren wird die Vorsorgeleistung für Jugendliche Jugendgesundheitsuntersuchung (J2) ein Mal bei der GOÄ-Ziffer 3514 "Glukose" abgerechnet
+```
 
 ---
 

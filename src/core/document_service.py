@@ -214,6 +214,12 @@ class DocumentService:
             document_schemas.ProcessedFileUpdate(status=document_schemas.ProcessingStatus.CHUNKING_IN_PROGRESS)
         )
 
+        if not self.repository_service.delete_text_chunks_for_processed_file_id(file_to_process.id):
+            logger.warn(f"Failed to delete text chunks for ProcessedFile with ID {file_to_process.id}")
+
+        if not self.file_service.delete_dir(file_to_process.filename, file_to_process.id, processor.filetype):
+            logger.warn(f"Failed to delete text chunks files for ProcessedFile with ID {file_to_process.id}")
+
         chunks, chunk_titles, clean_chunk_titles = processor.convert_text_to_chunks(filename=file_to_process.filename,
                                                                                     aggregated_text=file_to_process.aggregated_text,
                                                                                     header_level_cutoff=None)
